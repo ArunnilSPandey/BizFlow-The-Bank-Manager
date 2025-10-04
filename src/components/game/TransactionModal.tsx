@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '../ui/textarea';
 import { BANK_PLAYER_ID } from '@/lib/constants';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive('Amount must be positive.'),
@@ -65,13 +65,16 @@ export default function TransactionModal({ isOpen, onClose, source, destination 
   });
 
   // Reset form when modal opens with new data
-  if (isOpen) {
-    form.reset({
-      amount: 0,
-      memo: '',
-      type: transactionOptions.length === 1 ? transactionOptions[0].value : undefined
-    });
-  }
+  useEffect(() => {
+    if (isOpen) {
+      form.reset({
+        amount: 0,
+        memo: '',
+        type: transactionOptions.length === 1 ? transactionOptions[0].value : undefined
+      });
+    }
+  }, [isOpen, transactionOptions, form]);
+
 
   const onSubmit = (values: FormValues) => {
     if (!sourceId || !destinationId) return;
@@ -105,7 +108,7 @@ export default function TransactionModal({ isOpen, onClose, source, destination 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select transaction type" />
