@@ -59,6 +59,21 @@ export default function TransactionModal({ isOpen, onClose, source, destination 
     return getTransactionOptions(sourceId, destinationId);
   }, [sourceId, destinationId]);
 
+  const defaultTransactionType = useMemo(() => {
+    if (!sourceId || !destinationId) return undefined;
+
+    if (sourceId !== BANK_PLAYER_ID && destinationId === BANK_PLAYER_ID) {
+      return 'pay-bank';
+    }
+    if (sourceId === BANK_PLAYER_ID && destinationId !== BANK_PLAYER_ID) {
+      return 'receive-from-bank';
+    }
+    if (transactionOptions.length === 1) {
+      return transactionOptions[0].value;
+    }
+    return undefined;
+  }, [sourceId, destinationId, transactionOptions]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { amount: 0, memo: '' },
@@ -70,10 +85,10 @@ export default function TransactionModal({ isOpen, onClose, source, destination 
       form.reset({
         amount: 0,
         memo: '',
-        type: transactionOptions.length === 1 ? transactionOptions[0].value : undefined
+        type: defaultTransactionType
       });
     }
-  }, [isOpen, transactionOptions, form]);
+  }, [isOpen, defaultTransactionType, form]);
 
 
   const onSubmit = (values: FormValues) => {
