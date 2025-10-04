@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '../ui/textarea';
 import { BANK_PLAYER_ID } from '@/lib/constants';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive('Amount must be positive.'),
@@ -50,6 +50,7 @@ const getTransactionOptions = (sourceId: string, destinationId: string): { value
 
 export default function TransactionModal({ isOpen, onClose, source, destination }: TransactionModalProps) {
   const { performTransaction } = useGame();
+  const amountInputRef = useRef<HTMLInputElement>(null);
 
   const sourceId = source === 'bank' ? BANK_PLAYER_ID : source?.id;
   const destinationId = destination === 'bank' ? BANK_PLAYER_ID : destination?.id;
@@ -87,6 +88,11 @@ export default function TransactionModal({ isOpen, onClose, source, destination 
         memo: '',
         type: defaultTransactionType
       });
+      // Add a small delay to ensure the input is rendered and focusable
+      const timer = setTimeout(() => {
+        amountInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, defaultTransactionType, form]);
 
@@ -146,7 +152,7 @@ export default function TransactionModal({ isOpen, onClose, source, destination 
                 <FormItem>
                   <FormLabel>Amount ($)</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="number" {...field} ref={amountInputRef} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
