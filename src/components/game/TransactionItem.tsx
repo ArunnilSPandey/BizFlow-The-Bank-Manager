@@ -1,3 +1,4 @@
+
 import type { Transaction, TransactionType } from "@/types";
 import { useGame } from "@/contexts/GameContext";
 import { cn } from "@/lib/utils";
@@ -99,7 +100,9 @@ export default function TransactionItem({ transaction, currentPlayerId }: Transa
         </p>
         <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
             <Wallet className="h-3 w-3" />
-            <span>${closingBalance.toLocaleString()}</span>
+            {closingBalance !== undefined && (
+                <span>${closingBalance.toLocaleString()}</span>
+            )}
             {getFlowIcons(fromId, toId, currentPlayerId)}
         </div>
       </div>
