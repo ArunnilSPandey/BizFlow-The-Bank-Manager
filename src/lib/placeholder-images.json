@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "avatar1",
+      "description": "Top Hat",
+      "imageUrl": "https://images.unsplash.com/photo-1662137897341-4626aed88c1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx0b3AlMjBoYXR8ZW58MHx8fHwxNzU5NDYwNjY0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "top hat"
+    },
+    {
+      "id": "avatar2",
+      "description": "Race Car",
+      "imageUrl": "https://images.unsplash.com/photo-1617137555671-e5edec6e666b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxyYWNlJTIwY2FyfGVufDB8fHx8MTc1OTQ2NjcxMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "race car"
+    },
+    {
+      "id": "avatar3",
+      "description": "Battleship",
+      "imageUrl": "https://images.unsplash.com/photo-1562180410-ef466ed2c548?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxiYXR0bGVzaGlwfGVufDB8fHx8MTc1OTU1ODUwNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "battleship"
+    },
+    {
+      "id": "avatar4",
+      "description": "Scottie Dog",
+      "imageUrl": "https://images.unsplash.com/photo-1691564808249-33654b07aef5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxzY290dGllJTIwZG9nfGVufDB8fHx8MTc1OTU1ODUwNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "scottie dog"
+    },
+    {
+      "id": "avatar5",
+      "description": "Thimble",
+      "imageUrl": "https://images.unsplash.com/photo-1747927339115-da8f8680a594?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx0aGltYmxlfGVufDB8fHx8MTc1OTU1ODUwNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "thimble"
+    },
+    {
+      "id": "avatar6",
+      "description": "Wheelbarrow",
+      "imageUrl": "https://images.unsplash.com/photo-1715274036728-4385d95a5e9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3aGVlbGJhcnJvd3xlbnwwfHx8fDE3NTk1NTg1MDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wheelbarrow"
+    },
+    {
+      "id": "avatar7",
+      "description": "Iron",
+      "imageUrl": "https://images.unsplash.com/photo-1528918652533-dfdb3f368093?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxpcm9ufGVufDB8fHx8MTc1OTU1ODUwNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "iron"
+    },
+    {
+      "id": "avatar8",
+      "description": "Boot",
+      "imageUrl": "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxib290fGVufDB8fHx8MTc1OTUwODE2N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "boot"
+    }
+  ]
 }
