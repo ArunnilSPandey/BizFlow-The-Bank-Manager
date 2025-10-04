@@ -26,6 +26,7 @@ export interface Transaction {
   round: number; // The personal round of the player who this log belongs to
   timestamp: number;
   playerId: string; // The player this transaction belongs to in history
+  closingBalance: number;
 }
 
 export interface GameState {

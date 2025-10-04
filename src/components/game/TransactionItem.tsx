@@ -3,8 +3,6 @@ import { useGame } from "@/contexts/GameContext";
 import { cn } from "@/lib/utils";
 import { BANK_PLAYER_ID } from "@/lib/constants";
 import {
-  ArrowLeft,
-  ArrowRight,
   ArrowLeftRight,
   Landmark,
   Users,
@@ -13,6 +11,7 @@ import {
   PartyPopper,
   Percent,
   Banknote,
+  Wallet,
 } from "lucide-react";
 
 interface TransactionItemProps {
@@ -45,22 +44,19 @@ const getTransactionIcon = (type: TransactionType) => {
 const getFlowIcons = (fromId: string, toId: string, currentId: string) => {
     const isCredit = toId === currentId;
     
-    if (fromId === BANK_PLAYER_ID || toId === BANK_PLAYER_ID) {
-        return (
-            <div className="flex items-center gap-1">
-                {isCredit ? <Landmark className="h-4 w-4 text-muted-foreground" /> : <Users className="h-4 w-4 text-muted-foreground" />}
-                <ArrowRight className={cn("h-4 w-4", isCredit ? "text-green-500" : "text-destructive")} />
-                {isCredit ? <Users className="h-4 w-4 text-muted-foreground" /> : <Landmark className="h-4 w-4 text-muted-foreground" />}
-            </div>
-        );
+    if (fromId === BANK_PLAYER_ID) {
+      return <Landmark className="h-4 w-4 text-green-500" />;
+    }
+    if (toId === BANK_PLAYER_ID) {
+      return <Landmark className="h-4 w-4 text-destructive" />;
     }
     
-    return <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />;
+    return <Users className="h-4 w-4 text-muted-foreground" />;
 }
 
 export default function TransactionItem({ transaction, currentPlayerId }: TransactionItemProps) {
   const { gameState } = useGame();
-  const { fromId, toId, amount, memo, type } = transaction;
+  const { fromId, toId, amount, memo, type, closingBalance } = transaction;
 
   const from = fromId === BANK_PLAYER_ID ? { name: "Bank" } : gameState.players.find(p => p.id === fromId);
   const to = toId === BANK_PLAYER_ID ? { name: "Bank" } : gameState.players.find(p => p.id === toId);
@@ -90,7 +86,7 @@ export default function TransactionItem({ transaction, currentPlayerId }: Transa
 
   return (
     <div className="flex items-center gap-4 p-2 rounded-lg hover:bg-accent">
-      <div className={cn("rounded-full bg-secondary text-secondary-foreground", amountColor, isCredit ? "bg-green-100" : isDebit ? "bg-red-100" : "bg-gray-100")}>
+      <div className={cn("rounded-full text-secondary-foreground", isCredit ? "bg-green-100 text-green-600" : isDebit ? "bg-red-100 text-destructive" : "bg-gray-100 text-gray-600")}>
         {getTransactionIcon(type)}
       </div>
       <div className="flex-grow">
@@ -101,7 +97,11 @@ export default function TransactionItem({ transaction, currentPlayerId }: Transa
         <p className={cn("font-semibold text-lg", amountColor)}>
           {isCredit ? '+' : isDebit ? '-' : ''}${amount.toLocaleString()}
         </p>
-        {getFlowIcons(fromId, toId, currentPlayerId)}
+        <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+            <Wallet className="h-3 w-3" />
+            <span>${closingBalance.toLocaleString()}</span>
+            {getFlowIcons(fromId, toId, currentPlayerId)}
+        </div>
       </div>
     </div>
   );
