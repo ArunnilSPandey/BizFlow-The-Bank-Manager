@@ -14,11 +14,13 @@ interface PlayerCardProps {
   onDragStart: () => void;
   onDragEnd: () => void;
   onDrop: (destinationId: string) => void;
+  onClick: () => void;
   isDragging: boolean;
+  isSelected: boolean;
   isDropTarget: boolean;
 }
 
-export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, isDragging, isDropTarget }: PlayerCardProps) {
+export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onClick, isDragging, isSelected, isDropTarget }: PlayerCardProps) {
   const { passStart } = useGame();
   const [isDragOver, setIsDragOver] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -44,6 +46,7 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, isD
     <>
       <Card
         draggable
+        onClick={onClick}
         onDragStart={(e) => {
             e.dataTransfer.setData('text/plain', player.id);
             onDragStart();
@@ -55,9 +58,9 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, isD
         className={cn(
           'flex flex-col transition-all duration-200 ease-in-out cursor-grab active:cursor-grabbing shadow-lg hover:shadow-xl',
           isDragging && 'opacity-50 scale-95',
-          isDragOver && 'ring-2 ring-primary ring-offset-2',
+          (isDragOver || (isDropTarget && isSelected)) && 'ring-2 ring-primary ring-offset-2', // Highlight for drop target on mobile
+          isSelected && 'shadow-2xl ring-2 ring-blue-500 ring-offset-2'
         )}
-        data-drag-over={isDragOver}
       >
         <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
           <Avatar className="h-16 w-16 border-2 border-primary">
@@ -82,10 +85,10 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, isD
             )}
         </CardContent>
         <CardFooter className="grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={() => setHistoryOpen(true)}>
+            <Button variant="outline" onClick={(e) => { e.stopPropagation(); setHistoryOpen(true); }}>
                 <History className="mr-2 h-4 w-4" /> History
             </Button>
-            <Button onClick={() => passStart(player.id)} className='bg-green-600 hover:bg-green-700 text-white'>
+            <Button onClick={(e) => { e.stopPropagation(); passStart(player.id); }} className='bg-green-600 hover:bg-green-700 text-white'>
                 <Zap className="mr-2 h-4 w-4" /> Pass 'START'
             </Button>
         </CardFooter>

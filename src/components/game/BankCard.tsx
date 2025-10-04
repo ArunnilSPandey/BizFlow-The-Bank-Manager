@@ -10,15 +10,20 @@ interface BankCardProps {
     onDragStart: () => void;
     onDragEnd: () => void;
     onDrop: (destinationId: string) => void;
+    onClick: () => void;
     isDragging: boolean;
+    isSelected: boolean;
+    isDropTarget: boolean;
 }
 
-export default function BankCard({ onDragStart, onDragEnd, onDrop, isDragging }: BankCardProps) {
+export default function BankCard({ onDragStart, onDragEnd, onDrop, onClick, isDragging, isSelected, isDropTarget }: BankCardProps) {
     const [isDragOver, setIsDragOver] = useState(false);
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
-        setIsDragOver(true);
+        if (isDropTarget) {
+            setIsDragOver(true);
+        }
     };
 
     const handleDragLeave = () => {
@@ -34,6 +39,7 @@ export default function BankCard({ onDragStart, onDragEnd, onDrop, isDragging }:
     return (
         <Card
             draggable
+            onClick={onClick}
             onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', BANK_PLAYER_ID);
                 onDragStart();
@@ -44,8 +50,9 @@ export default function BankCard({ onDragStart, onDragEnd, onDrop, isDragging }:
             onDrop={handleDrop}
             className={cn(
                 'flex flex-col items-center justify-center text-center p-6 bg-secondary transition-shadow duration-200 ease-in-out cursor-grab active:cursor-grabbing shadow-lg hover:shadow-xl',
-                isDragOver && 'ring-2 ring-primary ring-offset-2',
+                (isDragOver || (isDropTarget && isSelected)) && 'ring-2 ring-primary ring-offset-2',
                 isDragging && 'opacity-50',
+                isSelected && 'shadow-2xl ring-2 ring-blue-500 ring-offset-2'
             )}
         >
             <CardHeader className="p-0">
