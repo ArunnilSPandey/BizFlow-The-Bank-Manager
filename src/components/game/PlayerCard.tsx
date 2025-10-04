@@ -5,22 +5,20 @@ import { useGame } from '@/contexts/GameContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Banknote, History, Landmark, Zap } from 'lucide-react';
+import { History, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TransactionHistorySheet from './TransactionHistorySheet';
-import { BANK_PLAYER_ID } from '@/lib/constants';
 
 interface PlayerCardProps {
   player: Player;
   onDragStart: () => void;
   onDragEnd: () => void;
   onDrop: (destinationId: string) => void;
-  onBankDrop: () => void;
   isDragging: boolean;
   isDropTarget: boolean;
 }
 
-export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onBankDrop, isDragging, isDropTarget }: PlayerCardProps) {
+export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, isDragging, isDropTarget }: PlayerCardProps) {
   const { passStart } = useGame();
   const [isDragOver, setIsDragOver] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -39,12 +37,7 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onB
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
-    const droppedId = e.dataTransfer.getData('text/plain');
-    if (droppedId === BANK_PLAYER_ID) {
-        onBankDrop();
-    } else {
-        onDrop(player.id);
-    }
+    onDrop(player.id);
   };
 
   return (

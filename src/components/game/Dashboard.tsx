@@ -27,28 +27,29 @@ export default function Dashboard() {
   const handleDrop = (destinationId: string) => {
     if (!draggedPlayerId || draggedPlayerId === destinationId) return;
 
-    const sourcePlayer = gameState.players.find(p => p.id === draggedPlayerId);
-    if (!sourcePlayer) return;
-
-    if (destinationId === BANK_PLAYER_ID) {
-      // Player -> Bank
-      setModalState({ isOpen: true, source: sourcePlayer, destination: 'bank' });
-    } else {
-      // Player -> Player
+    if (draggedPlayerId === BANK_PLAYER_ID) {
+      // Bank -> Player
       const destinationPlayer = gameState.players.find(p => p.id === destinationId);
       if (destinationPlayer) {
-        setModalState({ isOpen: true, source: sourcePlayer, destination: destinationPlayer });
+        setModalState({ isOpen: true, source: 'bank', destination: destinationPlayer });
+      }
+    } else {
+      // Player -> ...
+      const sourcePlayer = gameState.players.find(p => p.id === draggedPlayerId);
+      if (!sourcePlayer) return;
+
+      if (destinationId === BANK_PLAYER_ID) {
+        // Player -> Bank
+        setModalState({ isOpen: true, source: sourcePlayer, destination: 'bank' });
+      } else {
+        // Player -> Player
+        const destinationPlayer = gameState.players.find(p => p.id === destinationId);
+        if (destinationPlayer) {
+          setModalState({ isOpen: true, source: sourcePlayer, destination: destinationPlayer });
+        }
       }
     }
   };
-  
-  const handleBankDrop = (sourcePlayerId: string) => {
-     // Bank -> Player
-    const sourcePlayer = gameState.players.find(p => p.id === sourcePlayerId);
-     if (sourcePlayer) {
-        setModalState({ isOpen: true, source: 'bank', destination: sourcePlayer });
-     }
-  }
 
 
   return (
@@ -72,7 +73,6 @@ export default function Dashboard() {
             onDrop={handleDrop}
             isDragging={draggedPlayerId === player.id}
             isDropTarget={!!draggedPlayerId && draggedPlayerId !== player.id}
-            onBankDrop={() => handleBankDrop(player.id)}
           />
         ))}
       </div>
