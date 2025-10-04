@@ -33,7 +33,27 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export function GameProvider({ children }: { children: ReactNode }) {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string, description?: string} | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (notification) {
+      if (notification.type === 'success') {
+        toast({
+          title: notification.message,
+          description: notification.description,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: notification.message,
+          description: notification.description,
+        });
+      }
+      setNotification(null);
+    }
+  }, [notification, toast]);
+
 
   useEffect(() => {
     try {
@@ -60,6 +80,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [gameState, loading]);
 
   const addTransactionToLog = (
+    updatedPlayers: Player[],
+    updatedTransactions: Transaction[],
     player: Player,
     tx: Omit<Transaction, 'id' | 'timestamp' | 'playerId' | 'round' | 'closingBalance'>,
     closingBalance: number
@@ -72,7 +94,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       round: player.round,
       closingBalance: closingBalance
     };
-    setGameState(prev => ({ ...prev, transactions: [...prev.transactions, newTransaction] }));
+    updatedTransactions.push(newTransaction);
   };
 
   const startGame = (playerNames: { name: string }[], initialCapital: number) => {
@@ -104,15 +126,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
     memo: string;
     type: TransactionType;
   }) => {
+    let success = false;
+    let fromName: string | undefined = 'Bank';
+    let toName: string | undefined = 'Bank';
+
     setGameState(prev => {
-      const newPlayers = [...prev.players];
+      const newPlayers = JSON.parse(JSON.stringify(prev.players));
+      const newTransactions = JSON.parse(JSON.stringify(prev.transactions));
       const { fromId, toId, amount, type, memo } = details;
 
-      const fromPlayerIndex = newPlayers.findIndex(p => p.id === fromId);
-      const toPlayerIndex = newPlayers.findIndex(p => p.id === toId);
+      const fromPlayerIndex = newPlayers.findIndex((p: Player) => p.id === fromId);
+      const toPlayerIndex = newPlayers.findIndex((p: Player) => p.id === toId);
 
       const fromPlayer = fromPlayerIndex !== -1 ? newPlayers[fromPlayerIndex] : null;
       const toPlayer = toPlayerIndex !== -1 ? newPlayers[toPlayerIndex] : null;
+      
+      fromName = fromPlayer?.name || 'Bank';
+      toName = toPlayer?.name || 'Bank';
 
       try {
         switch (type) {
@@ -121,8 +151,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
               if (fromPlayer.balance < amount) throw new Error(`${fromPlayer.name} has insufficient funds.`);
               fromPlayer.balance -= amount;
               toPlayer.balance += amount;
-              addTransactionToLog(fromPlayer, { fromId, toId, amount, type, memo }, fromPlayer.balance);
-              addTransactionToLog(toPlayer, { fromId, toId, amount, type, memo }, toPlayer.balance);
+              addTransactionToLog(newPlayers, newTransactions, fromPlayer, { fromId, toId, amount, type, memo }, fromPlayer.balance);
+              addTransactionToLog(newPlayers, newTransactions, toPlayer, { fromId, toId, amount, type, memo }, toPlayer.balance);
             }
             break;
 
@@ -130,7 +160,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             if (fromPlayer) {
               if (fromPlayer.balance < amount) throw new Error(`${fromPlayer.name} has insufficient funds.`);
               fromPlayer.balance -= amount;
-              addTransactionToLog(fromPlayer, { fromId, toId, amount, type, memo }, fromPlayer.balance);
+              addTransactionToLog(newPlayers, newTransactions, fromPlayer, { fromId, toId, amount, type, memo }, fromPlayer.balance);
             }
             break;
 
@@ -140,14 +170,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
               if (fromPlayer.balance < repayAmount) throw new Error(`${fromPlayer.name} has insufficient funds to repay ${repayAmount}.`);
               fromPlayer.balance -= repayAmount;
               fromPlayer.loan -= repayAmount;
-              addTransactionToLog(fromPlayer, { fromId, toId, amount: repayAmount, type, memo }, fromPlayer.balance);
+              addTransactionToLog(newPlayers, newTransactions, fromPlayer, { fromId, toId, amount: repayAmount, type, memo }, fromPlayer.balance);
             }
             break;
 
           case 'receive-from-bank':
             if (toPlayer) {
               toPlayer.balance += amount;
-              addTransactionToLog(toPlayer, { fromId, toId, amount, type, memo }, toPlayer.balance);
+              addTransactionToLog(newPlayers, newTransactions, toPlayer, { fromId, toId, amount, type, memo }, toPlayer.balance);
             }
             break;
 
@@ -155,78 +185,64 @@ export function GameProvider({ children }: { children: ReactNode }) {
             if (toPlayer) {
               toPlayer.balance += amount;
               toPlayer.loan += amount;
-              addTransactionToLog(toPlayer, { fromId, toId, amount, type, memo }, toPlayer.balance);
+              addTransactionToLog(newPlayers, newTransactions, toPlayer, { fromId, toId, amount, type, memo }, toPlayer.balance);
             }
             break;
         }
         
-        const newGameState = { ...prev, players: newPlayers };
-        
-        // We call setGameState here to get the correct values for the toast, and then we will update it with the transaction log.
-        // It's a bit of a hack but it works for now.
-        setGameState(newGameState);
-
-        toast({
-            title: "Transaction Successful",
-            description: `${fromPlayer?.name || 'Bank'} -> ${toPlayer?.name || 'Bank'}: $${amount.toLocaleString()}`,
-        });
-        
-        return newGameState;
+        success = true;
+        return { ...prev, players: newPlayers, transactions: newTransactions };
       } catch (e: any) {
-        toast({
-            variant: "destructive",
-            title: "Transaction Failed",
-            description: e.message,
-        });
+        setNotification({type: 'error', message: 'Transaction Failed', description: e.message});
         return prev; // Return previous state if transaction fails
       }
     });
-  }, [toast]);
+
+    if (success) {
+      setNotification({
+        type: 'success',
+        message: 'Transaction Successful',
+        description: `${fromName} -> ${toName}: $${details.amount.toLocaleString()}`,
+      });
+    }
+  }, []);
 
   const passStart = (playerId: string) => {
+    let playerName = '';
+    let nextRound = 0;
+    
     setGameState(prev => {
-        const newPlayers = [...prev.players];
-        const playerIndex = newPlayers.findIndex(p => p.id === playerId);
+        const newPlayers = JSON.parse(JSON.stringify(prev.players));
+        const newTransactions = JSON.parse(JSON.stringify(prev.transactions));
+        const playerIndex = newPlayers.findIndex((p: Player) => p.id === playerId);
         
         if (playerIndex === -1) return prev;
 
         const player = newPlayers[playerIndex];
+        playerName = player.name;
+        nextRound = player.round + 1;
 
-        // This is a temporary state to calculate balances and logs sequentially.
-        let tempBalance = player.balance;
-
-        // Increment round first
-        const nextRound = player.round + 1;
+        player.round = nextRound;
         
-        // Add Pass Start money
-        tempBalance += PASS_START_AMOUNT;
-        addTransactionToLog({...player, round: nextRound}, { fromId: BANK_PLAYER_ID, toId: playerId, amount: PASS_START_AMOUNT, type: 'pass-start', memo: 'Passed START' }, tempBalance);
+        player.balance += PASS_START_AMOUNT;
+        addTransactionToLog(newPlayers, newTransactions, player, { fromId: BANK_PLAYER_ID, toId: playerId, amount: PASS_START_AMOUNT, type: 'pass-start', memo: 'Passed START' }, player.balance);
 
-        let newLoanAmount = player.loan;
-        // Handle loan interest
         if (player.loan > 0) {
             const interest = Math.round(player.loan * LOAN_INTEREST_RATE);
-            newLoanAmount += interest;
-            addTransactionToLog({...player, round: nextRound}, { fromId: BANK_PLAYER_ID, toId: playerId, amount: interest, type: 'interest-added', memo: `10% interest on loan` }, tempBalance);
+            player.loan += interest;
+            addTransactionToLog(newPlayers, newTransactions, player, { fromId: BANK_PLAYER_ID, toId: playerId, amount: interest, type: 'interest-added', memo: `10% interest on loan` }, player.balance);
         }
-
-        // Create the final updated player object
-        const updatedPlayer = {
-            ...player,
-            round: nextRound,
-            balance: tempBalance,
-            loan: newLoanAmount
-        };
         
-        newPlayers[playerIndex] = updatedPlayer;
-
-        toast({
-            title: `${player.name} Passed START!`,
-            description: `Balance updated and round is now ${updatedPlayer.round}.`,
-        });
-
-        return { ...prev, players: newPlayers };
+        return { ...prev, players: newPlayers, transactions: newTransactions };
     });
+
+    if(playerName && nextRound > 0) {
+        setNotification({
+            type: 'success',
+            message: `${playerName} Passed START!`,
+            description: `Balance updated and round is now ${nextRound}.`,
+        });
+    }
 };
 
   const value = {
