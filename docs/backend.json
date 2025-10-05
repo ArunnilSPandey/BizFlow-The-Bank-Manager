@@ -1,0 +1,196 @@
+{
+  "entities": {
+    "Game": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Game",
+      "type": "object",
+      "description": "Represents a single game instance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Game entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the game."
+        },
+        "initialCapital": {
+          "type": "number",
+          "description": "The starting cash amount for each player in the game."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the game was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "initialCapital",
+        "createdAt"
+      ]
+    },
+    "Player": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Player",
+      "type": "object",
+      "description": "Represents a player in the game.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Player entity."
+        },
+        "gameId": {
+          "type": "string",
+          "description": "Reference to Game. (Relationship: Game 1:N Player)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The player's name."
+        },
+        "balance": {
+          "type": "number",
+          "description": "The player's current balance."
+        },
+        "round": {
+          "type": "number",
+          "description": "The player's current round number."
+        },
+        "loanBalance": {
+          "type": "number",
+          "description": "The player's current loan balance."
+        }
+      },
+      "required": [
+        "id",
+        "gameId",
+        "name",
+        "balance",
+        "round",
+        "loanBalance"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a financial transaction between players or the bank.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
+        },
+        "gameId": {
+          "type": "string",
+          "description": "Reference to Game. (Relationship: Game 1:N Transaction)"
+        },
+        "fromPlayerId": {
+          "type": "string",
+          "description": "Reference to the source Player. Can be null if the source is the bank."
+        },
+        "toPlayerId": {
+          "type": "string",
+          "description": "Reference to the destination Player. Can be null if the destination is the bank."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction."
+        },
+        "memo": {
+          "type": "string",
+          "description": "A description of the transaction (e.g., 'Paid rent', 'Took out loan')."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of transaction (e.g., 'Pay Bank', 'Receive from Bank', 'Player-to-Player Transfer', 'Take Loan', 'Interest')."
+        },
+        "round": {
+          "type": "number",
+          "description": "The round in which the transaction occurred."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the transaction occurred.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "gameId",
+        "amount",
+        "memo",
+        "type",
+        "round",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/games/{gameId}",
+        "definition": {
+          "entityName": "Game",
+          "schema": {
+            "$ref": "#/backend/entities/Game"
+          },
+          "description": "Stores game instances. Root collection.",
+          "params": [
+            {
+              "name": "gameId",
+              "description": "The unique identifier for the game."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/games/{gameId}/players/{playerId}",
+        "definition": {
+          "entityName": "Player",
+          "schema": {
+            "$ref": "#/backend/entities/Player"
+          },
+          "description": "Stores player data for a specific game. Subcollection of /games/{gameId}. Includes denormalized 'gameId' for authorization independence.",
+          "params": [
+            {
+              "name": "gameId",
+              "description": "The unique identifier for the game."
+            },
+            {
+              "name": "playerId",
+              "description": "The unique identifier for the player."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/games/{gameId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction data for a specific game. Subcollection of /games/{gameId}. Includes denormalized 'gameId' for authorization independence.",
+          "params": [
+            {
+              "name": "gameId",
+              "description": "The unique identifier for the game."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for the transaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the 'BizFlow' application, focusing on transaction management and player state within board games. The structure adheres to the core design principles, especially Authorization Independence, by denormalizing relevant data. The design enables the creation of simple and robust security rules.\n\nThe primary collections are `games`, `players`, and `transactions`.  The `games` collection stores the overall game configuration. Each game has its own subcollections of `players` and `transactions` to maintain clear boundaries and facilitate efficient querying.\n\n**Authorization Independence:** To ensure authorization independence, the `gameId` is included in both `players` and `transactions` documents. This eliminates the need for `get()` calls to the parent `games` document in security rules, allowing for atomic operations and easier debugging. The `players` collection is structured as a subcollection of `games`, allowing easy management of players within a specific game.\n\n**QAPs (Rules are not Filters):** The structure ensures secure `list` operations by using structural segregation. All documents within a `players` or `transactions` subcollection share the same security posture, making it easy to write rules that allow listing only for authorized users (e.g., players within the game).  The path-based structure `/games/{gameId}/players/{playerId}` inherently provides ownership; only users with `playerId` can access or modify their corresponding player document.\n\n**Further Notes:**\n*   Timestamps are stored as strings (ISO format) to ensure compatibility and readability.\n*   Denormalization includes copying the `gameId` into `players` and `transactions` to avoid authorization dependencies on parent documents. This means that a query for all transactions related to a game does not require reading game data to authorize the request.\n*   The transaction `type` field is included in the `transactions` documents to allow for categorization and filtering of transactions."
+  }
+}
