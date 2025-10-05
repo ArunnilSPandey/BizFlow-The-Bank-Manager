@@ -155,16 +155,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
 
     try {
+      // Step 1: Create the game document
       const gameCollectionRef = collection(firestore, 'games');
       const newGameRef = await addDoc(gameCollectionRef, gameData);
       
+      // Step 2: Create the user role sub-document
       const roleDocRef = doc(firestore, 'games', newGameRef.id, 'userGameRoles', user.uid);
       await setDoc(roleDocRef, roleData);
 
       localStorage.setItem(LOCAL_STORAGE_GAME_ID_KEY, newGameRef.id);
       setGameId(newGameRef.id);
     } catch (error) {
-      console.error("Error creating game:", error);
       const permError = new FirestorePermissionError({
         path: 'games', // Use collection path for create operation
         operation: 'create',
@@ -220,7 +221,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setGameId(joinedGameId);
 
     } catch (error) {
-      console.error("Error joining game:", error);
       const permError = new FirestorePermissionError({
           path: 'games',
           operation: 'list',
@@ -267,7 +267,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
             requestResourceData: { gameStarted: true, initialCapital, players: playerNames }
         });
         errorEmitter.emit('permission-error', permError);
-        console.error("Failed to start game:", error);
         setError("An error occurred while starting the game.");
     });
   }, [firestore, gameId, user, userGameRole]);
