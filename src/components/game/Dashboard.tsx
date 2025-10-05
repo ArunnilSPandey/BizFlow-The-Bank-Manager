@@ -9,7 +9,7 @@ import TransactionModal from './TransactionModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Hand, Eye, Banknote, Users, Copy } from 'lucide-react';
+import { Hand, Eye, Banknote, Users, Copy, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import UserPresence from './UserPresence';
 
@@ -146,7 +146,11 @@ export default function Dashboard() {
       </div>
       
       <div className="absolute bottom-4 right-4">
-        {isBanker && <Button variant="destructive" size="sm" onClick={exitGame}>End Game</Button>}
+        {isBanker ? (
+            <Button variant="destructive" size="sm" onClick={exitGame}>End Game</Button>
+        ) : (
+            <Button variant="outline" size="sm" onClick={exitGame}><LogOut className="mr-2" /> Exit Game</Button>
+        )}
       </div>
 
       {isBanker && (

@@ -26,12 +26,10 @@ export default function GameLobby() {
         }
     }
 
-    // If game has started, show dashboard
-    if (game.gameStarted) {
-        return <NewGameSetup />;
-    }
+    // This screen is only for when the game has NOT started.
+    // If it has started, the GameWrapper will show the Dashboard.
+    // The check for `game.gameStarted` in the wrapper handles this.
 
-    // If game has not started, show lobby
     return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
             <Card className="w-full max-w-lg mx-auto shadow-2xl text-center">
@@ -58,7 +56,10 @@ export default function GameLobby() {
                     </div>
 
                     {isBanker ? (
-                        <NewGameSetup />
+                        <>
+                            <NewGameSetup />
+                             <Button variant="destructive" size="sm" onClick={exitGame}>End Game</Button>
+                        </>
                     ) : (
                         <div className='space-y-4'>
                             <p className="text-muted-foreground p-4 bg-accent rounded-md">
