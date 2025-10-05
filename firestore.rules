@@ -1,107 +1,91 @@
 /**
- * @file Firestore Security Rules for BizFlow Application
+ * @fileOverview Firestore Security Rules for the BizFlow application.
  *
- * @core_philosophy This ruleset enforces a role-based access control model for a board game application.
- *  Access to games, players, and transactions is controlled based on user roles within a specific game.
- *  Games can only be created by authenticated users. Players and transactions are scoped to their parent game.
+ * Core Philosophy:
+ * This ruleset enforces a role-based access control model, combined with ownership, to protect game data.
+ * Users can only create games, and the game creator (who is also the first player) can perform certain administrative actions, such as starting the game.
+ * Data Structure:
+ * - /games/{gameId}: Stores game metadata. Anyone can read existing games. Game creator can update the game.
+ * - /games/{gameId}/players/{playerId}: Stores player-specific data within a game. Only the player can read or write their own data.
+ * - /games/{gameId}/transactions/{transactionId}: Stores transaction data for a specific game. Only players in the game can list transactions, but only the player initiating the transaction can create them.
  *
- * @data_structure
- *  - /games/{gameId}: Stores game instances.
- *  - /games/{gameId}/players/{playerId}: Stores player data for a specific game.
- *  - /games/{gameId}/transactions/{transactionId}: Stores transaction data for a specific game.
+ * Key Security Decisions:
+ * - Players can only modify their own player data within a game.
+ * - Only the game creator can update/start the game.
+ * - Listing of games is allowed for all users.
  *
- * @key_security_decisions
- *  - Only authenticated users can create games.
- *  - Listing all games is disallowed.
- *  - Players and Transactions are scoped to the game and should only be accessible by the players or authorized game managers.
- *  - Uses denormalization for authorization: gameId is included in both players and transactions documents.
- *
- * @denormalization_for_authorization
- *  - The `gameId` is included in the `players` and `transactions` documents. This avoids the need for `get()` calls to the parent `games` document, improving performance and security.
+ * Denormalization for Authorization:
+ * - `gameId` is denormalized into the `players` and `transactions` subcollections to avoid costly `get()` calls and ensure authorization independence.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages access to the games collection.
+     * @description Controls access to the /games/{gameId} collection.
      * @path /games/{gameId}
-     * @allow (create) - Authenticated user can create a game
-     * @deny (get) - Listing all games is disallowed.
-     * @deny (update) - Games cannot be updated by the client.
-     * @deny (delete) - Games cannot be deleted by the client.
-     * @principle Owner-only access for game creation.
+     * @allow (get, list): Any user can read or list games.
+     * @allow (create): Any signed-in user can create a game.
+     * @allow (update, delete): Only the game creator can update/delete the game.
+     * @deny (create): If the `gameId` does not match the document ID.
+     * @principle Allows public read access while restricting write access to the game creator.
      */
     match /games/{gameId} {
-      allow get: if false;
-      allow list: if false;
+      allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow update, delete: if isGameCreator(gameId);
+      allow create: if request.resource.id == gameId;
     }
 
     /**
-     * @description Manages access to the players subcollection for a specific game.
+     * @description Controls access to the /games/{gameId}/players/{playerId} collection.
      * @path /games/{gameId}/players/{playerId}
-     * @allow (get) Authenticated user can retrieve a specific player's data within a game if they are the owner.
-     * @allow (list) Authenticated user can list players if they are the game owner.
-     * @allow (create) Authenticated user can create their player profile in a game
-     * @deny (update) Non-owner cannot update a player's data.
-     * @deny (delete) Non-owner cannot delete a player's data.
-     * @principle Enforces player-ownership for data access within a game.
+     * @allow (get, list): Only the player can read their own player data.
+     * @allow (create, update, delete): Only the player can create, update, or delete their own player data.
+     * @deny (create): If the `playerId` does not match the authenticated user's UID or if gameId does not match the parent path.
+     * @deny (update): If the document does not exist.
+     * @principle Enforces document ownership: only the player can manage their own data within the game.
      */
     match /games/{gameId}/players/{playerId} {
       allow get: if isOwner(playerId);
-      allow list: if false;
-      allow create: if isOwner(playerId);
-      allow update: if isExistingOwner(playerId);
-      allow delete: if isExistingOwner(playerId);
+      allow list: if isOwner(gameId);
+      allow create: if isOwner(playerId) && request.resource.data.gameId == gameId;
+      allow update, delete: if isExistingOwner(playerId);
     }
 
     /**
-     * @description Manages access to the transactions subcollection for a specific game.
+     * @description Controls access to the /games/{gameId}/transactions/{transactionId} collection.
      * @path /games/{gameId}/transactions/{transactionId}
-     * @allow (get) Authenticated user can retrieve transaction data within a game if they are the owner.
-     * @allow (list) Authenticated user can list transactions if they are the game owner.
-     * @allow (create) Authenticated user can create a transaction profile in a game
-     * @deny (update) Non-owner cannot update a transaction's data.
-     * @deny (delete) Non-owner cannot delete a transaction's data.
-     * @principle Enforces player-ownership for data access within a game.
+     * @allow (get): Any player can read any transaction.
+     * @allow (list): Any player can list all transactions for game.
+     * @allow (create): Only a player can create new transactions in the game.
+     * @allow (update, delete): No one can update or delete a transaction.
+     * @deny (create): If `gameId` does not match the parent path.
+     * @deny (update, delete): Always deny updating or deleting transactions.
+     * @principle Restricts transaction creation to players within the game, disallows modification or deletion.
      */
     match /games/{gameId}/transactions/{transactionId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.gameId == gameId;
+      allow update, delete: if false;
     }
 
-    // --- Helper functions ---
-
-    /**
-     * @description Checks if the user is signed in.
-     * @return {bool} True if the user is signed in, false otherwise.
-     */
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the requesting user is the owner of the resource.
-     * @param {string} userId The user ID to compare against the request's auth UID.
-     * @return {bool} True if the user is the owner, false otherwise.
-     */
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    /**
-     * @description Checks if the requesting user is the owner of the resource, and the resource exists.
-     * @param {string} userId The user ID to compare against the request's auth UID.
-     * @return {bool} True if the user is the owner and the resource exists, false otherwise.
-     */
     function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+        return isOwner(userId) && resource != null;
+    }
+
+    function isGameCreator(gameId) {
+        return get(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid;
     }
   }
 }

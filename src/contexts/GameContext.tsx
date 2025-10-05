@@ -11,6 +11,8 @@ import {
   getDocs,
   writeBatch,
   onSnapshot,
+  setDoc,
+  addDoc,
 } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Game, Player, Transaction, TransactionType, Role, UserGameRole } from '@/types';
@@ -137,7 +139,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     const gameCode = generateGameCode();
-    const gameDocRef = doc(collection(firestore, 'games'));
     
     const gameData: Omit<Game, 'id'> = {
       gameCode,
@@ -153,27 +154,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
         lastSeen: serverTimestamp(),
     };
 
-    const batch = writeBatch(firestore);
-    batch.set(gameDocRef, gameData);
-    const roleDocRef = doc(firestore, 'games', gameDocRef.id, 'userGameRoles', user.uid);
-    batch.set(roleDocRef, roleData);
+    try {
+      const gameCollectionRef = collection(firestore, 'games');
+      const newGameRef = await addDoc(gameCollectionRef, gameData);
+      
+      const roleDocRef = doc(firestore, 'games', newGameRef.id, 'userGameRoles', user.uid);
+      await setDoc(roleDocRef, roleData);
 
-    batch.commit().then(() => {
-        localStorage.setItem(LOCAL_STORAGE_GAME_ID_KEY, gameDocRef.id);
-        setGameId(gameDocRef.id);
-    }).catch((error) => {
+      localStorage.setItem(LOCAL_STORAGE_GAME_ID_KEY, newGameRef.id);
+      setGameId(newGameRef.id);
+    } catch (error) {
       console.error("Error creating game:", error);
       const permError = new FirestorePermissionError({
-        path: gameDocRef.path,
+        path: 'games', // Use collection path for create operation
         operation: 'create',
         requestResourceData: { game: gameData, role: roleData }
       });
       errorEmitter.emit('permission-error', permError);
       setError("Failed to create game. Check permissions.");
-    }).finally(() => {
+    } finally {
       setLoading(false);
-    });
-
+    }
   }, [firestore, user]);
 
   const joinGame = useCallback(async (gameCode: string) => {
@@ -206,16 +207,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
         lastSeen: serverTimestamp(),
       };
       
-      const batch = writeBatch(firestore);
-      batch.set(roleDocRef, roleData, { merge: true }); // Merge to not overwrite if already joined
-
-      await batch.commit();
+      setDoc(roleDocRef, roleData, { merge: true }).catch((error) => {
+        const permError = new FirestorePermissionError({
+            path: roleDocRef.path,
+            operation: 'write',
+            requestResourceData: roleData
+        });
+        errorEmitter.emit('permission-error', permError);
+      });
 
       localStorage.setItem(LOCAL_STORAGE_GAME_ID_KEY, joinedGameId);
       setGameId(joinedGameId);
 
     } catch (error) {
       console.error("Error joining game:", error);
+      const permError = new FirestorePermissionError({
+          path: 'games',
+          operation: 'list',
+          requestResourceData: { gameCode }
+      });
+      errorEmitter.emit('permission-error', permError);
       setError('Failed to join game.');
     } finally {
       setLoading(false);
@@ -249,12 +260,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       batch.set(playerDocRef, newPlayer);
     });
 
-    try {
-      await batch.commit();
-    } catch (e) {
-      console.error("Failed to start game:", e);
-      setError("An error occurred while starting the game.");
-    }
+    batch.commit().catch((error) => {
+        const permError = new FirestorePermissionError({
+            path: `games/${gameId}`,
+            operation: 'write',
+            requestResourceData: { gameStarted: true, initialCapital, players: playerNames }
+        });
+        errorEmitter.emit('permission-error', permError);
+        console.error("Failed to start game:", error);
+        setError("An error occurred while starting the game.");
+    });
   }, [firestore, gameId, user, userGameRole]);
 
   const resetGame = () => {
