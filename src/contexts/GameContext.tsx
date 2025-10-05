@@ -14,6 +14,8 @@ const initialGameState: GameState = {
   role: 'banker',
 };
 
+const LOCAL_STORAGE_KEY = 'bizflow_gamestate';
+
 interface GameContextType {
   gameState: GameState;
   loading: boolean;
@@ -57,9 +59,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [notification, toast]);
 
 
-  useEffect(() => {
+  const loadStateFromStorage = useCallback(() => {
     try {
-      const savedState = localStorage.getItem('bizflow_gamestate');
+      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (savedState) {
         const parsedState = JSON.parse(savedState);
         // Ensure role is set, default to banker if not present
@@ -76,10 +78,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Load initial state
+  useEffect(() => {
+    loadStateFromStorage();
+  }, [loadStateFromStorage]);
+
+  // Listen for changes from other tabs
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === LOCAL_STORAGE_KEY) {
+        loadStateFromStorage();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadStateFromStorage]);
+
+  // Save state changes to localStorage
   useEffect(() => {
     if (!loading) {
       try {
-        localStorage.setItem('bizflow_gamestate', JSON.stringify(gameState));
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(gameState));
       } catch (error) {
         console.error('Failed to save game state to localStorage', error);
       }
@@ -123,7 +144,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   };
   
   const resetGame = () => {
-    localStorage.removeItem('bizflow_gamestate');
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
     setGameState(initialGameState);
   }
 
@@ -247,7 +268,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (player.loan > 0) {
             const interest = Math.round(player.loan * LOAN_INTEREST_RATE);
             player.loan += interest;
-            addTransactionTolog(newPlayers, newTransactions, player, { fromId: BANK_PLAYER_ID, toId: playerId, amount: interest, type: 'interest-added', memo: `10% interest on loan` }, player.balance);
+            addTransactionToLog(newPlayers, newTransactions, player, { fromId: BANK_PLAYER_ID, toId: playerId, amount: interest, type: 'interest-added', memo: `10% interest on loan` }, player.balance);
         }
         
         return { ...prev, players: newPlayers, transactions: newTransactions };
