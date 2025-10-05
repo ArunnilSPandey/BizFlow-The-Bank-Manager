@@ -3,15 +3,26 @@ import { useGame } from '@/contexts/GameContext';
 import GameWrapper from '@/components/game/GameWrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
-import { useUser } from '@/firebase';
+import { useEffect, useState } from 'react';
+import { useUser, useAuth } from '@/firebase';
+import { signInAnonymously } from 'firebase/auth';
 import { Landmark } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Home() {
   const { gameId, createGame, joinGame, error } = useGame();
   const [joinCode, setJoinCode] = useState('');
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  useEffect(() => {
+    // When auth is ready and there's no user, sign in anonymously.
+    if (!isUserLoading && !user) {
+      signInAnonymously(auth).catch((error) => {
+        console.error("Anonymous sign-in failed:", error);
+      });
+    }
+  }, [isUserLoading, user, auth]);
 
   if (gameId) {
     return (
@@ -39,9 +50,9 @@ export default function Home() {
           <Button
             onClick={createGame}
             className="w-full font-bold"
-            disabled={isUserLoading}
+            disabled={isUserLoading || !user}
           >
-            {isUserLoading ? 'Connecting...' : 'Create New Game'}
+            {isUserLoading || !user ? 'Connecting...' : 'Create New Game'}
           </Button>
 
           <div className="flex items-center gap-4">
@@ -62,7 +73,7 @@ export default function Home() {
               onClick={handleJoinGame}
               variant="secondary"
               className="w-full"
-              disabled={!joinCode || isUserLoading}
+              disabled={!joinCode || isUserLoading || !user}
             >
               Join Game
             </Button>
