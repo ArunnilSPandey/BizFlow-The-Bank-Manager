@@ -91,6 +91,7 @@ export default function TransactionModal({ isOpen, onClose, source, destination 
       // Add a small delay to ensure the input is rendered and focusable
       const timer = setTimeout(() => {
         amountInputRef.current?.focus();
+        amountInputRef.current?.select();
       }, 100);
       return () => clearTimeout(timer);
     }

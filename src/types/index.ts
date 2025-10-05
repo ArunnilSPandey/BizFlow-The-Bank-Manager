@@ -1,3 +1,13 @@
+import { Timestamp } from 'firebase/firestore';
+
+export interface Game {
+    id: string;
+    gameCode: string;
+    initialCapital: number;
+    gameStarted: boolean;
+    createdAt: Timestamp;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -23,18 +33,18 @@ export interface Transaction {
   amount: number;
   memo: string;
   type: TransactionType;
-  round: number; // The personal round of the player who this log belongs to
-  timestamp: number;
+  round: number; 
+  timestamp: Timestamp;
   playerId: string; // The player this transaction belongs to in history
   closingBalance: number;
 }
 
-export type Role = 'banker' | 'viewer';
+export type Role = 'Banker' | 'Viewer';
 
-export interface GameState {
-  players: Player[];
-  transactions: Transaction[];
-  initialCapital: number;
-  gameStarted: boolean;
-  role: Role;
+export interface UserGameRole {
+    id: string;
+    userId: string;
+    role: Role;
+    onlineStatus: boolean;
+    lastSeen: Timestamp;
 }

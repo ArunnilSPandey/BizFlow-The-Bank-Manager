@@ -1,108 +1,72 @@
 /**
- * @file Firebase Security Rules for BizFlow App
+ * @file Firestore Security Rules for BizFlow Application
+ * @description This ruleset enforces a role-based access control model, focusing on game, player, and transaction data.
  *
- * @description This ruleset enforces a shared access model where players within a game can access game data,
- * player data, and transactions. Each game has its own collection of players and transactions,
- * secured by the `gameId`.
- *
- * @dataStructure
- * - /games/{gameId}: Stores game instances.
- * - /games/{gameId}/players/{playerId}: Stores player data for a specific game.
+ * Data Structure:
+ * - /games/{gameId}: Stores game instances. Publicly readable. Only authenticated users can create a game.
+ * - /games/{gameId}/players/{playerId}: Stores player data for a specific game. Players can only create their own player document.
  * - /games/{gameId}/transactions/{transactionId}: Stores transaction data for a specific game.
  *
- * @keySecurityDecisions
- * - Players can only access data related to the games they are participating in.
- * - Listing all games is disallowed.
- * - The `gameId` is denormalized into the `players` and `transactions` documents to avoid
- *   expensive `get()` calls in security rules.
+ * Key Security Decisions:
+ * - Games are publicly readable to allow open discovery.
+ * - Only signed-in users can create games.
+ * - Players and transactions are restricted to the game they belong to.
  *
- * @denormalizationForAuthorization
- * - The `gameId` is included in both `players` and `transactions` documents. This eliminates the need for
- *   `get()` calls to the parent `games` document in security rules.
- *
- * @structuralSegregation
- * - Games, players, and transactions are stored in separate collections to facilitate efficient querying
- *   and management.
+ * Denormalization for Authorization:
+ * - The `gameId` is included in both `players` and `transactions` documents to avoid costly `get()` calls and enforce authorization independence.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Restricts access to the 'games' collection.  Games can only be created.
+     * @description Controls access to the /games collection. Games are publicly readable but creation is restricted to authenticated users.
      * @path /games/{gameId}
-     * @allow (create) - Authenticated user can create a game.
-     * @deny (get) - No one can read a game directly.
-     * @deny (list) - No one can list games.
-     * @deny (update) - No one can update a game.
-     * @deny (delete) - No one can delete a game.
-     * @principle Prevents unauthorized access and modification of the games collection.
+     * @allow (get, list): if true (publicly readable)
+     * @allow (create): if isSignedIn() (only signed-in users can create)
+     * @deny (update, delete): if false (not allowed)
+     * @principle Public read, owner-only writes (creation by authenticated user)
      */
     match /games/{gameId} {
-      allow get: if false;
-      allow list: if false;
+      allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow update, delete: if false;
     }
 
     /**
-     * @description Controls access to the 'players' subcollection within a specific game. Players can create, read, update, and delete their own player documents.
+     * @description Controls access to the /games/{gameId}/players collection. Player documents can only be created by the authenticated user that owns the player ID.
      * @path /games/{gameId}/players/{playerId}
-     * @allow (get) - Authenticated user can get their own player document in the game.
-     * @allow (list) - Authenticated user can list player documents in the game (useful for game setup).
-     * @allow (create) - Authenticated user can create their own player document if gameId is correct.
-     * @allow (update) - Authenticated user can update their own player document in the game.
-     * @allow (delete) - Authenticated user can delete their own player document in the game.
-     * @deny (create) - Authenticated user cannot create a player document with incorrect gameId.
-     * @deny (update) - Authenticated user cannot update a player document that doesn't belong to them.
-     * @deny (delete) - Authenticated user cannot delete a player document that doesn't belong to them.
-     * @principle Enforces player ownership and prevents unauthorized modification of player data within a specific game.
+     * @allow (get, list): if isOwner(playerId)
+     * @allow (create): if isOwner(playerId)
+     * @deny (update, delete): if false (not allowed)
+     * @principle Enforces document ownership for writes
      */
     match /games/{gameId}/players/{playerId} {
-      allow get: if isSignedIn() && isPlayer(gameId, playerId);
-      allow list: if isSignedIn() && isGameParticipant(gameId);
-      allow create: if isSignedIn() && request.resource.data.gameId == gameId && request.resource.data.id == playerId;
-      allow update: if isSignedIn() && isExistingPlayer(gameId, playerId) && request.resource.data.id == playerId && request.resource.data.gameId == gameId;
-      allow delete: if isSignedIn() && isExistingPlayer(gameId, playerId);
+      allow get, list: if isOwner(playerId);
+      allow create: if isOwner(playerId);
+      allow update, delete: if false;
     }
 
     /**
-     * @description Manages access to the 'transactions' subcollection within a specific game. Players within the game can read transactions, and new transactions can be created by signed-in users.
+     * @description Controls access to the /games/{gameId}/transactions collection.
      * @path /games/{gameId}/transactions/{transactionId}
-     * @allow (get) - Authenticated user can get transaction document in the game.
-     * @allow (list) - Authenticated user can list transaction documents in the game.
-     * @allow (create) - Authenticated user can create a transaction document if they are a player in the game and the gameId is correct.
-     * @deny (update) - No one can update transaction documents.
-     * @deny (delete) - No one can delete transaction documents.
-     * @principle Allows authorized players to view transactions and signed in users to create them, while preventing modifications or deletions.
+     * @allow (get, list): if false (not allowed)
+     * @deny (create, update, delete): if false (not allowed)
+     * @principle Enforces document ownership for writes
      */
     match /games/{gameId}/transactions/{transactionId} {
-      allow get: if isSignedIn() && isGameParticipant(gameId);
-      allow list: if isSignedIn() && isGameParticipant(gameId);
-      allow create: if isSignedIn() && isGameParticipant(gameId) && request.resource.data.gameId == gameId;
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if false;
+      allow create, update, delete: if false;
     }
 
+    // Helper function to determine if the user is signed in.
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Helper function to determine if the user is the owner of the document.
     function isOwner(userId) {
       return request.auth.uid == userId;
-    }
-
-    function isPlayer(gameId, playerId) {
-      return request.auth.uid == playerId && exists(/databases/$(database)/documents/games/$(gameId)/players/$(playerId));
-    }
-
-    function isExistingPlayer(gameId, playerId) {
-      return request.auth.uid == playerId && resource.data.gameId == gameId;
-    }
-
-    function isGameParticipant(gameId) {
-        return exists(/databases/$(database)/documents/games/$(gameId)/players/$(request.auth.uid));
     }
   }
 }

@@ -18,14 +18,14 @@ interface PlayerCardProps {
   isDragging: boolean;
   isSelected: boolean;
   isDropTarget: boolean;
+  isBanker: boolean;
 }
 
-export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onClick, isDragging, isSelected, isDropTarget }: PlayerCardProps) {
-  const { passStart, gameState } = useGame();
+export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onClick, isDragging, isSelected, isDropTarget, isBanker }: PlayerCardProps) {
+  const { passStart } = useGame();
   const [isDragOver, setIsDragOver] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   
-  const isBanker = gameState.role === 'banker';
   const isDraggable = isBanker;
   
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {

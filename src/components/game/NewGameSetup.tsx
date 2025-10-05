@@ -21,12 +21,12 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function NewGameSetup() {
-  const { startGame } = useGame();
+  const { startGame, game } = useGame();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      initialCapital: 15000,
+      initialCapital: game?.initialCapital || 15000,
       players: [{ name: '' }, { name: '' }],
     },
   });
@@ -45,8 +45,8 @@ export default function NewGameSetup() {
       <Card className="w-full max-w-md mx-auto shadow-2xl">
         <CardHeader className="text-center">
             <Landmark className="mx-auto h-12 w-12 text-primary" />
-          <CardTitle className="font-headline text-4xl">BizFlow</CardTitle>
-          <CardDescription>A new game of business is about to begin.</CardDescription>
+          <CardTitle className="font-headline text-4xl">Game Setup</CardTitle>
+          <CardDescription>Configure the players and starting money.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

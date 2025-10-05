@@ -1,6 +1,5 @@
 
-import type { Transaction, TransactionType } from "@/types";
-import { useGame } from "@/contexts/GameContext";
+import type { Player, Transaction, TransactionType } from "@/types";
 import { cn } from "@/lib/utils";
 import { BANK_PLAYER_ID } from "@/lib/constants";
 import {
@@ -18,6 +17,7 @@ import {
 interface TransactionItemProps {
   transaction: Transaction;
   currentPlayerId: string;
+  allPlayers: Player[];
 }
 
 const getTransactionIcon = (type: TransactionType) => {
@@ -55,12 +55,11 @@ const getFlowIcons = (fromId: string, toId: string, currentId: string) => {
     return <Users className="h-4 w-4 text-muted-foreground" />;
 }
 
-export default function TransactionItem({ transaction, currentPlayerId }: TransactionItemProps) {
-  const { gameState } = useGame();
+export default function TransactionItem({ transaction, currentPlayerId, allPlayers }: TransactionItemProps) {
   const { fromId, toId, amount, memo, type, closingBalance } = transaction;
 
-  const from = fromId === BANK_PLAYER_ID ? { name: "Bank" } : gameState.players.find(p => p.id === fromId);
-  const to = toId === BANK_PLAYER_ID ? { name: "Bank" } : gameState.players.find(p => p.id === toId);
+  const from = fromId === BANK_PLAYER_ID ? { name: "Bank" } : allPlayers.find(p => p.id === fromId);
+  const to = toId === BANK_PLAYER_ID ? { name: "Bank" } : allPlayers.find(p => p.id === toId);
 
   const isCredit = toId === currentPlayerId && type !== 'interest-added' && type !== 'take-loan';
   const isDebit = fromId === currentPlayerId && type !== 'repay-loan';
@@ -103,7 +102,6 @@ export default function TransactionItem({ transaction, currentPlayerId }: Transa
             {closingBalance !== undefined && (
                 <span>${closingBalance.toLocaleString()}</span>
             )}
-            {getFlowIcons(fromId, toId, currentPlayerId)}
         </div>
       </div>
     </div>

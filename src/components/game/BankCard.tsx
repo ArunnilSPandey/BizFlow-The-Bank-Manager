@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BANK_PLAYER_ID } from '@/lib/constants';
-import { useGame } from '@/contexts/GameContext';
 
 interface BankCardProps {
     onDragStart: () => void;
@@ -15,12 +14,11 @@ interface BankCardProps {
     isDragging: boolean;
     isSelected: boolean;
     isDropTarget: boolean;
+    isBanker: boolean;
 }
 
-export default function BankCard({ onDragStart, onDragEnd, onDrop, onClick, isDragging, isSelected, isDropTarget }: BankCardProps) {
-    const { gameState } = useGame();
+export default function BankCard({ onDragStart, onDragEnd, onDrop, onClick, isDragging, isSelected, isDropTarget, isBanker }: BankCardProps) {
     const [isDragOver, setIsDragOver] = useState(false);
-    const isBanker = gameState.role === 'banker';
     const isDraggable = isBanker;
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {

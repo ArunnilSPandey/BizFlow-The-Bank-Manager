@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import TransactionItem from './TransactionItem';
+import { Timestamp } from 'firebase/firestore';
 
 interface TransactionHistorySheetProps {
   player: Player;
@@ -14,12 +15,18 @@ interface TransactionHistorySheetProps {
 }
 
 export default function TransactionHistorySheet({ player, isOpen, onClose }: TransactionHistorySheetProps) {
-  const { gameState } = useGame();
+  const { transactions, players } = useGame();
 
   const groupedTransactions = useMemo(() => {
-    const playerTransactions = gameState.transactions
-      .filter(tx => tx.playerId === player.id)
-      .sort((a, b) => b.timestamp - a.timestamp);
+    if (!transactions) return {};
+
+    const playerTransactions = transactions
+      .filter(tx => tx.fromId === player.id || tx.toId === player.id)
+      .sort((a, b) => {
+        const timestampA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
+        const timestampB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
+        return timestampB - timestampA;
+      });
 
     return playerTransactions.reduce((acc, tx) => {
       const round = tx.round;
@@ -29,7 +36,7 @@ export default function TransactionHistorySheet({ player, isOpen, onClose }: Tra
       acc[round].push(tx);
       return acc;
     }, {} as Record<number, Transaction[]>);
-  }, [gameState.transactions, player.id]);
+  }, [transactions, player.id]);
 
   const sortedRounds = Object.keys(groupedTransactions).map(Number).sort((a, b) => b - a);
 
@@ -42,25 +49,25 @@ export default function TransactionHistorySheet({ player, isOpen, onClose }: Tra
         </SheetHeader>
         <Separator />
         <ScrollArea className="flex-grow">
-            <div className="pr-4">
-                {sortedRounds.length > 0 ? (
-                    sortedRounds.map(round => (
-                    <div key={round} className="my-4">
-                        <h3 className="text-lg font-bold font-headline text-primary mb-2 sticky top-0 bg-card/80 backdrop-blur-sm py-1">
-                        Round {round}
-                        </h3>
-                        <div className="space-y-3">
-                        {groupedTransactions[round].map(tx => (
-                            <TransactionItem key={tx.id} transaction={tx} currentPlayerId={player.id} />
-                        ))}
-                        </div>
-                    </div>
-                    ))
-                ) : (
-                    <div className="text-center text-muted-foreground py-10">
-                        <p>No transactions yet.</p>
-                    </div>
-                )}
+          <div className="pr-4">
+            {sortedRounds.length > 0 ? (
+              sortedRounds.map(round => (
+                <div key={round} className="my-4">
+                  <h3 className="text-lg font-bold font-headline text-primary mb-2 sticky top-0 bg-card/80 backdrop-blur-sm py-1">
+                    Round {round}
+                  </h3>
+                  <div className="space-y-3">
+                    {groupedTransactions[round].map(tx => (
+                      <TransactionItem key={tx.id} transaction={tx} currentPlayerId={player.id} allPlayers={players} />
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-muted-foreground py-10">
+                <p>No transactions yet.</p>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </SheetContent>

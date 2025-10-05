@@ -1,6 +1,8 @@
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
+import { FirebaseClientProvider } from '@/firebase';
+import { GameProvider } from '@/contexts/GameContext';
 
 export const metadata: Metadata = {
   title: 'BizFlow',
@@ -20,8 +22,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
-        {children}
-        <Toaster />
+        <FirebaseClientProvider>
+          <GameProvider>
+            {children}
+          </GameProvider>
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

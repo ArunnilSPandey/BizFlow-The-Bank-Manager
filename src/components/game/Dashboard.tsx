@@ -9,10 +9,12 @@ import TransactionModal from './TransactionModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Hand, Eye, Banknote } from 'lucide-react';
+import { Hand, Eye, Banknote, Users, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import UserPresence from './UserPresence';
 
 export default function Dashboard() {
-  const { gameState, setRole } = useGame();
+  const { game, userGameRole, players, resetGame } = useGame();
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{
@@ -20,9 +22,10 @@ export default function Dashboard() {
     source: Player | 'bank' | null;
     destination: Player | 'bank' | null;
   }>({ isOpen: false, source: null, destination: null });
+  const { toast } = useToast();
 
   const isMobile = useIsMobile();
-  const isBanker = gameState.role === 'banker';
+  const isBanker = userGameRole?.role === 'Banker';
 
   const handleDragStart = (playerId: string) => {
     if (!isBanker) return;
@@ -37,8 +40,8 @@ export default function Dashboard() {
   const openTransactionModal = (sourceId: string, destinationId: string) => {
     if (!isBanker || sourceId === destinationId) return;
 
-    const sourcePlayer = sourceId === BANK_PLAYER_ID ? 'bank' : gameState.players.find(p => p.id === sourceId);
-    const destinationPlayer = destinationId === BANK_PLAYER_ID ? 'bank' : gameState.players.find(p => p.id === destinationId);
+    const sourcePlayer = sourceId === BANK_PLAYER_ID ? 'bank' : players.find(p => p.id === sourceId);
+    const destinationPlayer = destinationId === BANK_PLAYER_ID ? 'bank' : players.find(p => p.id === destinationId);
 
     if (sourcePlayer && destinationPlayer) {
       setModalState({ isOpen: true, source: sourcePlayer, destination: destinationPlayer });
@@ -68,24 +71,36 @@ export default function Dashboard() {
     setSelectedId(null); // Also reset selection when modal is closed
   }
 
-  const toggleRole = () => {
-    const newRole = isBanker ? 'viewer' : 'banker';
-    setRole(newRole);
+  const copyGameCode = () => {
+    if (game?.gameCode) {
+        navigator.clipboard.writeText(game.gameCode);
+        toast({
+            title: "Game Code Copied!",
+            description: `You can now share "${game.gameCode}" with other players.`,
+        });
+    }
   }
 
   return (
     <div className="container mx-auto p-4 min-h-screen">
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex justify-between items-start mb-2">
         <div>
           <h1 className="text-5xl font-headline text-primary">BizFlow</h1>
           <p className="text-muted-foreground">
             A Digital Ledger for the Business Board Game
           </p>
         </div>
-        <Button variant="outline" onClick={toggleRole}>
-          {isBanker ? <Eye className="mr-2" /> : <Banknote className="mr-2" />}
-          Switch to {isBanker ? 'Viewer' : 'Banker'} Mode
-        </Button>
+        <div className="text-right">
+          <div className="flex items-center gap-2">
+            <UserPresence />
+            <Button variant="outline" size="sm" onClick={copyGameCode}>
+                <Copy className="mr-2" /> {game?.gameCode}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            You are a <span className={isBanker ? "font-bold text-primary" : "font-bold"}>{userGameRole?.role}</span>
+          </p>
+        </div>
       </div>
 
       <p className="text-center text-muted-foreground mb-8">
@@ -112,8 +127,9 @@ export default function Dashboard() {
           isDragging={draggedPlayerId === BANK_PLAYER_ID}
           isSelected={selectedId === BANK_PLAYER_ID}
           isDropTarget={!!(draggedPlayerId || selectedId) && (draggedPlayerId !== BANK_PLAYER_ID && selectedId !== BANK_PLAYER_ID)}
+          isBanker={isBanker}
         />
-        {gameState.players.map(player => (
+        {players.map(player => (
           <PlayerCard
             key={player.id}
             player={player}
@@ -124,8 +140,13 @@ export default function Dashboard() {
             isDragging={draggedPlayerId === player.id}
             isSelected={selectedId === player.id}
             isDropTarget={!!(draggedPlayerId || selectedId) && (draggedPlayerId !== player.id && selectedId !== player.id)}
+            isBanker={isBanker}
           />
         ))}
+      </div>
+      
+      <div className="absolute bottom-4 right-4">
+        {isBanker && <Button variant="destructive" size="sm" onClick={resetGame}>End Game</Button>}
       </div>
 
       {isBanker && (
