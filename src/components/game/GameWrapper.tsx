@@ -8,7 +8,7 @@ import { Landmark } from 'lucide-react';
 import GameLobby from './GameLobby';
 
 export default function GameWrapper() {
-  const { game, loading, resetGame } = useGame();
+  const { game, loading, exitGame } = useGame();
 
   if (loading) {
     return (
@@ -30,7 +30,7 @@ export default function GameWrapper() {
                 <Landmark className="mx-auto h-16 w-16 text-destructive" />
                 <h1 className="mt-4 text-4xl font-headline text-destructive">Error</h1>
                 <p className="text-muted-foreground">Could not load game data.</p>
-                <Button onClick={resetGame} className="mt-4">Go Home</Button>
+                <Button onClick={exitGame} className="mt-4">Go Home</Button>
             </div>
         </div>
     );

@@ -33,7 +33,7 @@ interface GameContextType {
   createGame: () => void;
   joinGame: (gameCode: string) => void;
   startGame: (playerNames: { name: string }[], initialCapital: number) => void;
-  resetGame: () => void;
+  exitGame: () => void;
   performTransaction: (details: {
     fromId: string;
     toId: string;
@@ -84,7 +84,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setError(null);
       } else {
         setError('Game not found.');
-        resetGame(); // Game was deleted or does not exist.
+        exitGame(); // Game was deleted or does not exist.
       }
     }, (e) => {
       console.error("Game subscription error:", e);
@@ -271,7 +271,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, [firestore, gameId, user, userGameRole]);
 
-  const resetGame = () => {
+  const exitGame = () => {
     localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
     setGameId(null);
     setGame(null);
@@ -450,7 +450,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     createGame,
     joinGame,
     startGame,
-    resetGame,
+    exitGame,
     performTransaction,
     passStart,
   };

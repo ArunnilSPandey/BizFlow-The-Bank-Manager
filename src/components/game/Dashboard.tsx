@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import UserPresence from './UserPresence';
 
 export default function Dashboard() {
-  const { game, userGameRole, players, resetGame } = useGame();
+  const { game, userGameRole, players, exitGame } = useGame();
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{
@@ -146,7 +146,7 @@ export default function Dashboard() {
       </div>
       
       <div className="absolute bottom-4 right-4">
-        {isBanker && <Button variant="destructive" size="sm" onClick={resetGame}>End Game</Button>}
+        {isBanker && <Button variant="destructive" size="sm" onClick={exitGame}>End Game</Button>}
       </div>
 
       {isBanker && (

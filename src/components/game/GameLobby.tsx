@@ -3,12 +3,12 @@ import { useGame } from '@/contexts/GameContext';
 import NewGameSetup from './NewGameSetup';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, PartyPopper, Users, Landmark } from 'lucide-react';
+import { Copy, PartyPopper, Users, Landmark, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import UserPresence from './UserPresence';
 
 export default function GameLobby() {
-    const { game, userGameRole, players } = useGame();
+    const { game, userGameRole, players, exitGame } = useGame();
     const { toast } = useToast();
     const isBanker = userGameRole?.role === 'Banker';
 
@@ -60,9 +60,14 @@ export default function GameLobby() {
                     {isBanker ? (
                         <NewGameSetup />
                     ) : (
-                        <p className="text-muted-foreground p-4 bg-accent rounded-md">
-                            Once the Banker starts the game, the player dashboard will appear here.
-                        </p>
+                        <div className='space-y-4'>
+                            <p className="text-muted-foreground p-4 bg-accent rounded-md">
+                                Once the Banker starts the game, the player dashboard will appear here.
+                            </p>
+                             <Button variant="outline" onClick={exitGame}>
+                                <LogOut className="mr-2" /> Exit Lobby
+                            </Button>
+                        </div>
                     )}
                 </CardContent>
             </Card>
