@@ -29,9 +29,12 @@ export interface Transaction {
   closingBalance: number;
 }
 
+export type Role = 'banker' | 'viewer';
+
 export interface GameState {
   players: Player[];
   transactions: Transaction[];
   initialCapital: number;
   gameStarted: boolean;
+  role: Role;
 }

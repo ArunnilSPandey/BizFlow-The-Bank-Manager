@@ -21,13 +21,16 @@ interface PlayerCardProps {
 }
 
 export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onClick, isDragging, isSelected, isDropTarget }: PlayerCardProps) {
-  const { passStart } = useGame();
+  const { passStart, gameState } = useGame();
   const [isDragOver, setIsDragOver] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   
+  const isBanker = gameState.role === 'banker';
+  const isDraggable = isBanker;
+  
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (isDropTarget) {
+    if (isDropTarget && isBanker) {
       setIsDragOver(true);
     }
   };
@@ -38,6 +41,7 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onC
   
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (!isBanker) return;
     setIsDragOver(false);
     onDrop(player.id);
   };
@@ -45,9 +49,13 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onC
   return (
     <>
       <Card
-        draggable
-        onClick={onClick}
+        draggable={isDraggable}
+        onClick={isBanker ? onClick : () => {}}
         onDragStart={(e) => {
+            if (!isBanker) {
+                e.preventDefault();
+                return;
+            }
             e.dataTransfer.setData('text/plain', player.id);
             onDragStart();
         }}
@@ -56,7 +64,9 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onC
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          'flex flex-col transition-all duration-200 ease-in-out cursor-grab active:cursor-grabbing shadow-lg hover:shadow-xl',
+          'flex flex-col transition-all duration-200 ease-in-out shadow-lg',
+          isBanker && 'cursor-grab active:cursor-grabbing hover:shadow-xl',
+          !isBanker && 'cursor-not-allowed',
           isDragging && 'opacity-50 scale-95',
           (isDragOver || (isDropTarget && isSelected)) && 'ring-2 ring-primary ring-offset-2', // Highlight for drop target on mobile
           isSelected && 'shadow-2xl ring-2 ring-blue-500 ring-offset-2'
@@ -88,7 +98,7 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onC
             <Button variant="outline" onClick={(e) => { e.stopPropagation(); setHistoryOpen(true); }}>
                 <History className="mr-2 h-4 w-4" /> History
             </Button>
-            <Button onClick={(e) => { e.stopPropagation(); passStart(player.id); }} className='bg-green-600 hover:bg-green-700 text-white'>
+            <Button onClick={(e) => { e.stopPropagation(); passStart(player.id); }} className='bg-green-600 hover:bg-green-700 text-white' disabled={!isBanker}>
                 <Zap className="mr-2 h-4 w-4" /> Pass 'START'
             </Button>
         </CardFooter>

@@ -8,10 +8,11 @@ import { BANK_PLAYER_ID } from '@/lib/constants';
 import TransactionModal from './TransactionModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Hand } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Hand, Eye, Banknote } from 'lucide-react';
 
 export default function Dashboard() {
-  const { gameState } = useGame();
+  const { gameState, setRole } = useGame();
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{
@@ -21,17 +22,20 @@ export default function Dashboard() {
   }>({ isOpen: false, source: null, destination: null });
 
   const isMobile = useIsMobile();
+  const isBanker = gameState.role === 'banker';
 
   const handleDragStart = (playerId: string) => {
+    if (!isBanker) return;
     setDraggedPlayerId(playerId);
   };
 
   const handleDragEnd = () => {
+    if (!isBanker) return;
     setDraggedPlayerId(null);
   };
 
   const openTransactionModal = (sourceId: string, destinationId: string) => {
-    if (sourceId === destinationId) return;
+    if (!isBanker || sourceId === destinationId) return;
 
     const sourcePlayer = sourceId === BANK_PLAYER_ID ? 'bank' : gameState.players.find(p => p.id === sourceId);
     const destinationPlayer = destinationId === BANK_PLAYER_ID ? 'bank' : gameState.players.find(p => p.id === destinationId);
@@ -42,13 +46,12 @@ export default function Dashboard() {
   };
 
   const handleDrop = (destinationId: string) => {
-    if (draggedPlayerId) {
-      openTransactionModal(draggedPlayerId, destinationId);
-    }
+    if (!isBanker || !draggedPlayerId) return;
+    openTransactionModal(draggedPlayerId, destinationId);
   };
 
   const handleCardClick = (id: string) => {
-    if (!isMobile) return;
+    if (!isMobile || !isBanker) return;
 
     if (!selectedId) {
       // First selection
@@ -65,14 +68,32 @@ export default function Dashboard() {
     setSelectedId(null); // Also reset selection when modal is closed
   }
 
+  const toggleRole = () => {
+    const newRole = isBanker ? 'viewer' : 'banker';
+    setRole(newRole);
+  }
+
   return (
     <div className="container mx-auto p-4 min-h-screen">
-      <h1 className="text-5xl font-headline text-center mb-2 text-primary">BizFlow</h1>
+      <div className="flex justify-between items-center mb-2">
+        <div>
+          <h1 className="text-5xl font-headline text-primary">BizFlow</h1>
+          <p className="text-muted-foreground">
+            A Digital Ledger for the Business Board Game
+          </p>
+        </div>
+        <Button variant="outline" onClick={toggleRole}>
+          {isBanker ? <Eye className="mr-2" /> : <Banknote className="mr-2" />}
+          Switch to {isBanker ? 'Viewer' : 'Banker'} Mode
+        </Button>
+      </div>
+
       <p className="text-center text-muted-foreground mb-8">
-        {isMobile ? "Tap a card to select a source, then tap another for the destination." : "Drag and drop cards to make transactions."}
+        {isBanker && (isMobile ? "Tap a card to select a source, then tap another for the destination." : "Drag and drop cards to make transactions.")}
+        {!isBanker && "You are in Viewer Mode. No changes can be made."}
       </p>
 
-      {isMobile && selectedId && (
+      {isMobile && selectedId && isBanker && (
          <Alert className="mb-4 max-w-md mx-auto bg-accent border-primary text-primary">
             <Hand className="h-4 w-4" />
            <AlertTitle className="font-semibold">Source Selected!</AlertTitle>
@@ -107,12 +128,14 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <TransactionModal
-        isOpen={modalState.isOpen}
-        onClose={handleModalClose}
-        source={modalState.source}
-        destination={modalState.destination}
-      />
+      {isBanker && (
+        <TransactionModal
+          isOpen={modalState.isOpen}
+          onClose={handleModalClose}
+          source={modalState.source}
+          destination={modalState.destination}
+        />
+      )}
     </div>
   );
 }

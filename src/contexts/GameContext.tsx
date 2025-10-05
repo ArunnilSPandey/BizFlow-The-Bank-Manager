@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import type { GameState, Player, Transaction, TransactionType } from '@/types';
+import type { GameState, Player, Transaction, TransactionType, Role } from '@/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { BANK_PLAYER_ID, LOAN_INTEREST_RATE, PASS_START_AMOUNT } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +11,7 @@ const initialGameState: GameState = {
   transactions: [],
   initialCapital: 15000,
   gameStarted: false,
+  role: 'banker',
 };
 
 interface GameContextType {
@@ -26,6 +27,7 @@ interface GameContextType {
     type: TransactionType;
   }) => void;
   passStart: (playerId: string) => void;
+  setRole: (role: Role) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -59,7 +61,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     try {
       const savedState = localStorage.getItem('bizflow_gamestate');
       if (savedState) {
-        setGameState(JSON.parse(savedState));
+        const parsedState = JSON.parse(savedState);
+        // Ensure role is set, default to banker if not present
+        if (!parsedState.role) {
+          parsedState.role = 'banker';
+        }
+        setGameState(parsedState);
       }
     } catch (error) {
       console.error('Failed to load game state from localStorage', error);
@@ -111,6 +118,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       initialCapital,
       transactions: [],
       gameStarted: true,
+      role: 'banker',
     });
   };
   
@@ -126,6 +134,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     memo: string;
     type: TransactionType;
   }) => {
+    if (gameState.role !== 'banker') {
+      setNotification({type: 'error', message: 'Viewer Mode', description: 'Only the Banker can perform transactions.'});
+      return;
+    }
     let success = false;
     let fromName: string | undefined = 'Bank';
     let toName: string | undefined = 'Bank';
@@ -205,9 +217,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
         description: `${fromName} -> ${toName}: $${details.amount.toLocaleString()}`,
       });
     }
-  }, []);
+  }, [gameState.role]);
 
   const passStart = (playerId: string) => {
+    if (gameState.role !== 'banker') {
+      setNotification({type: 'error', message: 'Viewer Mode', description: 'Only the Banker can perform this action.'});
+      return;
+    }
+
     let playerName = '';
     let nextRound = 0;
     
@@ -230,7 +247,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (player.loan > 0) {
             const interest = Math.round(player.loan * LOAN_INTEREST_RATE);
             player.loan += interest;
-            addTransactionToLog(newPlayers, newTransactions, player, { fromId: BANK_PLAYER_ID, toId: playerId, amount: interest, type: 'interest-added', memo: `10% interest on loan` }, player.balance);
+            addTransactionTolog(newPlayers, newTransactions, player, { fromId: BANK_PLAYER_ID, toId: playerId, amount: interest, type: 'interest-added', memo: `10% interest on loan` }, player.balance);
         }
         
         return { ...prev, players: newPlayers, transactions: newTransactions };
@@ -245,13 +262,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
 };
 
+  const setRole = (role: Role) => {
+    setGameState(prev => ({ ...prev, role }));
+  };
+
   const value = {
     gameState,
     loading,
     startGame,
     resetGame,
     performTransaction,
-    passStart
+    passStart,
+    setRole,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
