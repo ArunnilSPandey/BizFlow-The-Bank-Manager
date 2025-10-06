@@ -10,6 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Landmark, Trash2, UserPlus, Users } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { writeBatch, doc, collection } from 'firebase/firestore';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const formSchema = z.object({
   initialCapital: z.coerce.number().min(1, 'Initial capital must be positive.'),
@@ -21,7 +27,9 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function NewGameSetup() {
-  const { startGame, game } = useGame();
+  const { game } = useGame();
+  const firestore = useFirestore();
+  const { toast } = useToast();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -36,12 +44,47 @@ export default function NewGameSetup() {
     name: 'players',
   });
 
-  const onSubmit = (values: FormValues) => {
-    startGame(values.players, values.initialCapital);
+  const onSubmit = async (values: FormValues) => {
+    if (!firestore || !game?.id) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Game not properly initialized.' });
+        return;
+    }
+
+    const batch = writeBatch(firestore);
+
+    // Update the main game document
+    const gameRef = doc(firestore, 'games', game.id);
+    batch.update(gameRef, { gameStarted: true, initialCapital: values.initialCapital });
+
+    // Create player documents
+    const playersRef = collection(firestore, 'games', game.id, 'players');
+    values.players.forEach((p, index) => {
+      const playerDocRef = doc(playersRef);
+      const newPlayer = {
+        name: p.name,
+        balance: values.initialCapital,
+        loan: 0,
+        round: 1,
+        avatarUrl: PlaceHolderImages[index % PlaceHolderImages.length].imageUrl,
+      };
+      batch.set(playerDocRef, newPlayer);
+    });
+
+    try {
+        await batch.commit();
+        toast({ title: 'Game Started!', description: 'All players have been created.' });
+    } catch(error) {
+        const permError = new FirestorePermissionError({
+            path: `games/${game.id}`,
+            operation: 'write',
+            requestResourceData: { gameStarted: true, initialCapital: values.initialCapital, players: values.players }
+        });
+        errorEmitter.emit('permission-error', permError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not start game.' });
+    }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md mx-auto shadow-2xl">
         <CardHeader className="text-center">
             <Landmark className="mx-auto h-12 w-12 text-primary" />
@@ -112,6 +155,5 @@ export default function NewGameSetup() {
           </Form>
         </CardContent>
       </Card>
-    </div>
   );
 }

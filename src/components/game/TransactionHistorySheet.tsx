@@ -7,6 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import TransactionItem from './TransactionItem';
 import { Timestamp } from 'firebase/firestore';
+import { useTransactions } from '@/hooks/useTransactions';
+import { usePlayers } from '@/hooks/usePlayers';
 
 interface TransactionHistorySheetProps {
   player: Player;
@@ -15,16 +17,19 @@ interface TransactionHistorySheetProps {
 }
 
 export default function TransactionHistorySheet({ player, isOpen, onClose }: TransactionHistorySheetProps) {
-  const { transactions, players } = useGame();
+  const { gameId, userGameRole } = useGame();
+  const transactions = useTransactions(gameId);
+  const allPlayers = usePlayers(gameId);
+  const isBanker = userGameRole?.role === 'Banker';
 
   const groupedTransactions = useMemo(() => {
     if (!transactions) return {};
 
     const playerTransactions = transactions
-      .filter(tx => tx.fromId === player.id || tx.toId === player.id)
+      .filter(tx => tx.playerId === player.id)
       .sort((a, b) => {
-        const timestampA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
-        const timestampB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
+        const timestampA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : new Date(a.timestamp as any).getTime();
+        const timestampB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : new Date(b.timestamp as any).getTime();
         return timestampB - timestampA;
       });
 
@@ -58,7 +63,7 @@ export default function TransactionHistorySheet({ player, isOpen, onClose }: Tra
                   </h3>
                   <div className="space-y-3">
                     {groupedTransactions[round].map(tx => (
-                      <TransactionItem key={tx.id} transaction={tx} currentPlayerId={player.id} allPlayers={players} />
+                      <TransactionItem key={tx.id} transaction={tx} currentPlayerId={player.id} allPlayers={allPlayers} isBanker={isBanker} />
                     ))}
                   </div>
                 </div>

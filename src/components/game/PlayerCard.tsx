@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
 import type { Player } from '@/types';
-import { useGame } from '@/contexts/GameContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { History, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TransactionHistorySheet from './TransactionHistorySheet';
+import { useGame } from '@/contexts/GameContext';
 
 interface PlayerCardProps {
   player: Player;
@@ -15,14 +15,14 @@ interface PlayerCardProps {
   onDragEnd: () => void;
   onDrop: (destinationId: string) => void;
   onClick: () => void;
+  onPassStart: (playerId: string) => void;
   isDragging: boolean;
   isSelected: boolean;
   isDropTarget: boolean;
   isBanker: boolean;
 }
 
-export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onClick, isDragging, isSelected, isDropTarget, isBanker }: PlayerCardProps) {
-  const { passStart } = useGame();
+export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onClick, onPassStart, isDragging, isSelected, isDropTarget, isBanker }: PlayerCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   
@@ -98,7 +98,7 @@ export default function PlayerCard({ player, onDragStart, onDragEnd, onDrop, onC
             <Button variant="outline" onClick={(e) => { e.stopPropagation(); setHistoryOpen(true); }}>
                 <History className="mr-2 h-4 w-4" /> History
             </Button>
-            <Button onClick={(e) => { e.stopPropagation(); passStart(player.id); }} className='bg-green-600 hover:bg-green-700 text-white' disabled={!isBanker}>
+            <Button onClick={(e) => { e.stopPropagation(); onPassStart(player.id); }} className='bg-green-600 hover:bg-green-700 text-white' disabled={!isBanker}>
                 <Zap className="mr-2 h-4 w-4" /> Pass 'START'
             </Button>
         </CardFooter>

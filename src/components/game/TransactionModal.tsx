@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { Player, TransactionType } from '@/types';
-import { useGame } from '@/contexts/GameContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '../ui/textarea';
 import { BANK_PLAYER_ID } from '@/lib/constants';
 import { useMemo, useEffect, useRef } from 'react';
+import { performTransaction } from '@/lib/transactions';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive('Amount must be positive.'),
@@ -26,6 +26,7 @@ interface TransactionModalProps {
   onClose: () => void;
   source: Player | 'bank' | null;
   destination: Player | 'bank' | null;
+  onConfirm: (details: Parameters<typeof performTransaction>[2]) => void;
 }
 
 const getTransactionOptions = (sourceId: string, destinationId: string): { value: TransactionType; label: string }[] => {
@@ -48,8 +49,7 @@ const getTransactionOptions = (sourceId: string, destinationId: string): { value
 };
 
 
-export default function TransactionModal({ isOpen, onClose, source, destination }: TransactionModalProps) {
-  const { performTransaction } = useGame();
+export default function TransactionModal({ isOpen, onClose, source, destination, onConfirm }: TransactionModalProps) {
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const sourceId = source === 'bank' ? BANK_PLAYER_ID : source?.id;
@@ -100,7 +100,7 @@ export default function TransactionModal({ isOpen, onClose, source, destination 
 
   const onSubmit = (values: FormValues) => {
     if (!sourceId || !destinationId) return;
-    performTransaction({
+    onConfirm({
       fromId: sourceId,
       toId: destinationId,
       amount: values.amount,

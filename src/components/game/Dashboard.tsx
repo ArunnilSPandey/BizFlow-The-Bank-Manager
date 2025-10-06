@@ -9,12 +9,20 @@ import TransactionModal from './TransactionModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Hand, Eye, Banknote, Users, Copy, LogOut } from 'lucide-react';
+import { Hand, Copy, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import UserPresence from './UserPresence';
+import Rulebook from './Rulebook';
+import BankerSettings from './BankerSettings';
+import { usePlayers } from '@/hooks/usePlayers';
+import { performTransaction, passStart } from '@/lib/transactions';
+import { useFirestore } from '@/firebase';
 
 export default function Dashboard() {
-  const { game, userGameRole, players, exitGame } = useGame();
+  const { game, userGameRole, exitGame, gameId } = useGame();
+  const firestore = useFirestore();
+  const players = usePlayers(gameId);
+
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{
@@ -81,6 +89,41 @@ export default function Dashboard() {
     }
   }
 
+  const handlePerformTransaction = async (details: Parameters<typeof performTransaction>[2]) => {
+    if (!firestore || !gameId) return;
+    try {
+      await performTransaction(firestore, gameId, details);
+      toast({
+        title: 'Transaction Successful',
+        description: `Financial records updated.`,
+      });
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Transaction Failed",
+        description: e.message,
+      });
+    }
+  };
+  
+  const handlePassStart = async (playerId: string) => {
+    if (!firestore || !gameId || !game) return;
+    try {
+      await passStart(firestore, gameId, playerId, game.passStartAmount, game.loanInterestRate);
+      const player = players.find(p => p.id === playerId);
+      toast({
+        title: `${player?.name} Passed START!`,
+        description: `Balance and round updated.`,
+      });
+    } catch (e: any) {
+       toast({
+        variant: "destructive",
+        title: "Action Failed",
+        description: e.message,
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 min-h-screen">
       <div className="flex justify-between items-start mb-2">
@@ -102,6 +145,10 @@ export default function Dashboard() {
           </p>
         </div>
       </div>
+      
+      <Rulebook />
+
+      {isBanker && <BankerSettings />}
 
       <p className="text-center text-muted-foreground mb-8">
         {isBanker && (isMobile ? "Tap a card to select a source, then tap another for the destination." : "Drag and drop cards to make transactions.")}
@@ -137,6 +184,7 @@ export default function Dashboard() {
             onDragEnd={handleDragEnd}
             onDrop={handleDrop}
             onClick={() => handleCardClick(player.id)}
+            onPassStart={handlePassStart}
             isDragging={draggedPlayerId === player.id}
             isSelected={selectedId === player.id}
             isDropTarget={!!(draggedPlayerId || selectedId) && (draggedPlayerId !== player.id && selectedId !== player.id)}
@@ -159,6 +207,7 @@ export default function Dashboard() {
           onClose={handleModalClose}
           source={modalState.source}
           destination={modalState.destination}
+          onConfirm={handlePerformTransaction}
         />
       )}
     </div>
