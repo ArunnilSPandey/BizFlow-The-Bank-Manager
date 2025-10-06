@@ -40,6 +40,10 @@ export default function Rulebook() {
                 <p>
                     Only the Banker can perform transactions. This includes player-to-player payments, payments to/from the bank, and managing loans.
                 </p>
+                <h3 className="font-semibold text-foreground">Loan Payment rule</h3>
+                <p>
+                   Remember to transfer the loan amount taken from the bank to the same Bank for purchasing any property owned or in control of the bank. this is recurring process since the game only has one bank unlike real world where the loan amount gets transfered to different accounts.
+                </p>
             </div>
           </div>
         </AccordionContent>
