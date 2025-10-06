@@ -40,10 +40,6 @@ export default function Rulebook() {
                 <p>
                     Only the Banker can perform transactions. This includes player-to-player payments, payments to/from the bank, and managing loans.
                 </p>
-                 <h3 className="font-semibold text-foreground">Undo</h3>
-                <p>
-                    The Banker can undo any transaction from a player's history. This will reverse the financial transfer. Note that undoing a "Pass 'START'" transaction will also revert the player's round number.
-                </p>
             </div>
           </div>
         </AccordionContent>

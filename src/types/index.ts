@@ -26,8 +26,7 @@ export type TransactionType =
   | 'take-loan'
   | 'player-to-player'
   | 'pass-start'
-  | 'interest-added'
-  | 'undo';
+  | 'interest-added';
 
 export interface Transaction {
   id: string;
@@ -40,7 +39,6 @@ export interface Transaction {
   timestamp: Timestamp;
   playerId: string; // The player this transaction belongs to in history
   closingBalance: number;
-  originalTxId?: string; // For undo transactions
 }
 
 export type Role = 'Banker' | 'Viewer';

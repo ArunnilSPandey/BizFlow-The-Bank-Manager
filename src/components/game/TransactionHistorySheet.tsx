@@ -63,7 +63,7 @@ export default function TransactionHistorySheet({ player, isOpen, onClose }: Tra
                   </h3>
                   <div className="space-y-3">
                     {groupedTransactions[round].map(tx => (
-                      <TransactionItem key={tx.id} transaction={tx} currentPlayerId={player.id} allPlayers={allPlayers} isBanker={isBanker} />
+                      <TransactionItem key={tx.id} transaction={tx} currentPlayerId={player.id} allPlayers={allPlayers} />
                     ))}
                   </div>
                 </div>
