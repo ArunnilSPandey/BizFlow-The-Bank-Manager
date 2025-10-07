@@ -22,6 +22,7 @@ BizFlow is a digital ledger application designed to eliminate the hassle of manu
 ## 🚀 Live Demo
 
 **Check out the live application here:** `https://bizflow-the-game.web.app/`
+**Static/Non-backend version:** `https://login-4bf38.web.app/`
 
 ***
 
