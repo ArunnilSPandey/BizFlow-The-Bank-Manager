@@ -1,164 +1,135 @@
-BizFlow - Digital Ledger for Business Board Games
-Project Overview
-BizFlow is a digital ledger application designed for business board games. It simplifies financial tracking with the following features:
+# BizFlow: Digital Ledger for Business Board Games 🎲
 
-Game Setup: Configure new games with custom player names and starting capital
-Interactive Player/Bank Cards: Display each player's financial status and round number
-Drag-and-Drop Transactions: Initiate transactions between players and the bank
-Loan System: Manage loans with automatic 10% interest calculation
-Transaction History: View detailed player transaction history grouped by round
-Real-time Sync: Utilizes Firebase for real-time data synchronization across devices
-Complete Deployment Guide
-This guide will walk you through setting up the development environment and deploying BizFlow to Firebase Hosting.
+![Framework](https://img.shields.io/badge/Framework-Next.js-black.svg)
+![Language](https://img.shields.io/badge/Language-TypeScript-blue.svg)
+![Database](https://img.shields.io/badge/Database-Firebase-orange.svg)
+![Deployment](https://img.shields.io/badge/Deployment-Firebase_Hosting-yellow.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-Prerequisites
-A computer running Windows, macOS, or Linux
-Basic knowledge of command-line interfaces
-A Firebase account (free tier works for initial deployment)
-Step 1: Install Node.js and npm
-Download Node.js:
+BizFlow is a digital ledger application designed to eliminate the hassle of manual bookkeeping in business-style board games. It provides a simple, intuitive interface for managing player finances, with customizable game rules and real-time data synchronization. The Banker can set unique game parameters, players can transact with ease, and spectators can watch the action unfold live.
 
-Visit https://nodejs.org/
-Download the LTS (Long Term Support) version
-Run the installer and follow the installation prompts
-Accept the default installation settings
-Verify the installation:
+<img width="1916" height="865" alt="image" src="https://github.com/user-attachments/assets/c253ed75-de59-4db7-8f3a-68a3c1f5299b" />
 
-These commands should display the installed versions of Node.js and npm.
+<img width="1896" height="861" alt="image" src="https://github.com/user-attachments/assets/3038a8e5-8272-4f6d-89d8-f707c6a68c17" />
 
-Step 2: Clone and Set Up the Project
-Clone the repository (or download and extract if you have it as a ZIP):
+<img width="1878" height="863" alt="image" src="https://github.com/user-attachments/assets/56059dae-e5ec-467c-abab-c959e0967047" />
 
-Install project dependencies:
+<img width="1897" height="863" alt="image" src="https://github.com/user-attachments/assets/eb3ab22a-972c-4215-acb7-014abeb05eb3" />
 
-This will install all the dependencies listed in package.json.
 
-Step 3: Run the Project Locally
-Start the development server:
+``
 
-Open the application in your browser:
+## 🚀 Live Demo
 
-Test the application to ensure everything works correctly.
+**Check out the live application here:** `https://bizflow-the-game.web.app/`
 
-Step 4: Create a Firebase Project
-Go to Firebase Console:
+***
 
-Visit https://console.firebase.google.com/
-Sign in with your Google account
-Create a new project:
+## ✨ Key Features
 
-Click "Add project"
-Enter a project name (e.g., "bizflow-the-game")
-Choose whether to enable Google Analytics (recommended)
-Click "Create project"
-Register your app with Firebase:
+* **🎮 Flexible Game Setup**: Configure new games with custom player names, and allow the Banker to set the starting capital and loan interest rate.
+* **💳 Interactive Player Cards**: View each player's current financial status and the game's round number at a glance.
+* **💸 Drag-and-Drop Transactions**: Effortlessly initiate transactions between players or with the bank.
+* **🏦 Dynamic Loan System**: Manage loans with an automatic interest calculation based on the rate set by the Banker.
+* **🔒 Transaction Validation**: Secure backend rules in Firestore prevent players from spending more money than they have.
+* **📜 Detailed History**: Review a round-by-round transaction history for each player to track financial movements.
+* **👀 Spectator Mode**: Allows users to join and view a game's progress in real-time without participating.
+* **🔄 Real-time Sync**: Utilizes Firebase Firestore to ensure all game data is synchronized instantly across all devices.
 
-From the project overview page, click the web icon (</>) to add a web app
-Enter an app nickname (e.g., "BizFlow")
-Check "Also set up Firebase Hosting" if prompted
-Click "Register app"
-Note your Firebase configuration:
+***
 
-Firebase will display configuration details
-This information is already in your project at config.ts, but you may need to update it
-Step 5: Install Firebase CLI
-Install Firebase CLI globally:
+## 🛠️ Tech Stack
 
-Log in to Firebase:
+* **Framework**: [Next.js](https://nextjs.org/)
+* **Language**: [TypeScript](https://www.typescriptlang.org/)
+* **Database & Hosting**: [Firebase](https://firebase.google.com/) (Firestore, Authentication, Hosting)
+* **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 
-This will open a browser window where you'll authorize the CLI with your Google account.
+***
 
-Step 6: Initialize Firebase in Your Project
-Initialize Firebase:
+## ⚙️ Getting Started
 
-Select features: When prompted "Which Firebase features do you want to set up for this directory?", use the arrow keys and space bar to select:
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
-Press Enter to continue.
+### Prerequisites
 
-Project selection:
+* **Node.js**: Make sure you have the LTS version of Node.js installed. You can download it [here](https://nodejs.org/).
+* **Firebase Account**: You'll need a free Firebase account. Create one [here](https://firebase.google.com/).
+* **Firebase CLI**: Install the Firebase command-line tools globally.
+    ```bash
+    npm install -g firebase-tools
+    ```
 
-Select "Use an existing project"
-Choose your Firebase project from the list (e.g., "bizflow-the-game")
-Hosting setup:
+### Installation & Setup
 
-What do you want to use as your public directory? Enter . (just a period) to use the project root
-Configure as a single-page app? Answer No
-Set up automatic builds and deploys with GitHub? Choose based on your preference (typically No for first setup)
-File firebase.json already exists. Overwrite? Answer No to keep your existing configuration
-Step 7: Configure Firebase for Next.js
-Create or update firebase.json (it should match this configuration):
+1.  **Clone the Repository**
+    ```bash
+    git clone [https://github.com/your-username/BizFlow.git](https://github.com/your-username/BizFlow.git)
+    cd BizFlow
+    ```
 
-This configuration is crucial for Next.js applications, particularly the frameworksBackend setting.
+2.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
 
-Verify .firebaserc file has the correct project ID:
+3.  **Set Up Firebase**
+    * Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
+    * In your project dashboard, click the web icon (`</>`) to add a new web app.
+    * Follow the setup steps and copy the `firebaseConfig` object.
 
-Replace your-firebase-project-id with your actual Firebase project ID.
+4.  **Create Environment File**
+    * In the root of the project, create a file named `.env.local`.
+    * Paste your Firebase configuration keys into this file. It should look like this:
 
-Create apphosting.yaml if it doesn't exist:
+    ```env
+    # .env.local
+    NEXT_PUBLIC_FIREBASE_API_KEY="your-api-key"
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-auth-domain"
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-storage-bucket"
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-messaging-sender-id"
+    NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
+    ```
 
-Step 8: Build Your Application
-Build the application:
+### Running the Development Server
 
-This will create an optimized production build of your application.
+Start the local development server with this command:
+```bash
 
-Verify the build was successful (you should see a success message).
+Open your browser and navigate to `http://localhost:3000` to see the application running.
 
-Step 9: Deploy to Firebase
-Deploy your application:
+***
 
-Watch the deployment progress in your terminal.
+## ☁️ Deployment
 
-On successful deployment, you'll see a message with:
+This project is configured for easy deployment to **Firebase Hosting**.
 
-Hosting URL: https://your-project-id.web.app
-Console URL: Link to Firebase console
-Step 10: Test Your Deployed Application
-Visit your deployed application using the Hosting URL provided.
+1.  **Log in to Firebase** (if you haven't already):
+    ```bash
+    firebase login
+    ```
 
-Test all features to ensure they work correctly in the production environment.
+2.  **Initialize Firebase** in your project directory (if you haven't already):
+    ```bash
+    firebase init
+    ```
+    * When prompted, select **Hosting: Configure files for Firebase Hosting...**.
+    * Choose to **Use an existing project** and select your Firebase project.
+    * When prompted for your public directory, enter `.` (a single period).
+    * Answer **No** to "Configure as a single-page app".
 
-Step 11: Set Up Firebase Authentication (Optional)
-Go to your Firebase console.
+3.  **Build and Deploy**
+    * First, create a production-ready build of your application:
+        ```bash
+        npm run build
+        ```
+    * Then, deploy the build to Firebase Hosting:
+        ```bash
+        firebase deploy
+        ```
+    After deployment, the CLI will provide you with the URL to your live application!
 
-Enable Authentication:
+***
 
-Click on "Authentication" in the left sidebar
-Click "Get started"
-Enable the authentication methods you need (e.g., Anonymous, Email/Password)
-Step 12: Set Up Firestore Database (Optional)
-Go to your Firebase console.
 
-Create Firestore Database:
-
-Click on "Firestore Database" in the left sidebar
-Click "Create database"
-Start in production mode (or test mode for development)
-Choose a database location closest to your users
-Troubleshooting
-Firebase initialization errors during build:
-
-These warnings are normal during build and won't affect production
-The initialization code handles both local and production environments
-"Page Not Found" after deployment:
-
-Ensure your firebase.json contains the correct configuration with source and frameworksBackend
-Check your Firebase console for any deployment errors
-Authentication or database access issues:
-
-Verify Firebase Authentication is enabled for the methods you're using
-Check Firestore security rules in the Firebase Console
-Updating Your Deployed Application
-Make changes to your code.
-
-Rebuild the application:
-
-Redeploy:
-
-Managing Your Application
-Firebase Console: Visit https://console.firebase.google.com/ to manage your project, view analytics, and monitor performance.
-
-Adding Custom Domain: In the Firebase Hosting section, click "Add custom domain" to connect your own domain name.
-
-Security Rules: Set up appropriate security rules for Firestore to protect your data.
-
-Now your BizFlow application is fully deployed and ready to use! Share the URL with your users to start tracking game finances with ease.
