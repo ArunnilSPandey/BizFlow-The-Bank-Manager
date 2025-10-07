@@ -6,6 +6,7 @@ import {
   writeBatch,
   serverTimestamp,
   Firestore,
+  getDoc,
 } from 'firebase/firestore';
 import type { Player, Transaction, TransactionType } from '@/types';
 import { BANK_PLAYER_ID } from '@/lib/constants';
@@ -44,78 +45,113 @@ export const performTransaction = async (
     type: TransactionType;
   }
 ) => {
-    try {
-        const batch = writeBatch(firestore);
-
-        await runTransaction(firestore, async (transaction) => {
-            const { fromId, toId, amount, type, memo } = details;
-    
-            const fromPlayerRef = fromId !== BANK_PLAYER_ID ? doc(firestore, 'games', gameId, 'players', fromId) : null;
-            const toPlayerRef = toId !== BANK_PLAYER_ID ? doc(firestore, 'games', gameId, 'players', toId) : null;
-    
-            const fromPlayerDoc = fromPlayerRef ? await transaction.get(fromPlayerRef) : null;
-            const toPlayerDoc = toPlayerRef ? await transaction.get(toPlayerRef) : null;
-    
-            const fromPlayer = fromPlayerDoc?.exists() ? fromPlayerDoc.data() as Player : null;
-            const toPlayer = toPlayerDoc?.exists() ? toPlayerDoc.data() as Player : null;
-
-            switch (type) {
-                case 'player-to-player':
-                    if (fromPlayer && toPlayer && fromPlayerRef && toPlayerRef) {
-                        if (fromPlayer.balance < amount) throw new Error(`${fromPlayer.name} has insufficient funds.`);
-                        transaction.update(fromPlayerRef, { balance: fromPlayer.balance - amount });
-                        transaction.update(toPlayerRef, { balance: toPlayer.balance + amount });
-                        addTransactionToLog(batch, firestore, gameId, { ...fromPlayer, id: fromId }, { fromId, toId, amount, type, memo }, fromPlayer.balance - amount);
-                        addTransactionToLog(batch, firestore, gameId, { ...toPlayer, id: toId }, { fromId, toId, amount, type, memo }, toPlayer.balance + amount);
-                    }
-                    break;
-
-                case 'pay-bank':
-                    if (fromPlayer && fromPlayerRef) {
-                        if (fromPlayer.balance < amount) throw new Error(`${fromPlayer.name} has insufficient funds.`);
-                        transaction.update(fromPlayerRef, { balance: fromPlayer.balance - amount });
-                        addTransactionToLog(batch, firestore, gameId, { ...fromPlayer, id: fromId }, { fromId, toId, amount, type, memo }, fromPlayer.balance - amount);
-                    }
-                    break;
-
-                case 'repay-loan':
-                    if (fromPlayer && fromPlayerRef) {
-                        const repayAmount = Math.min(amount, fromPlayer.loan);
-                        if (fromPlayer.balance < repayAmount) throw new Error(`${fromPlayer.name} has insufficient funds to repay ${repayAmount}.`);
-                        transaction.update(fromPlayerRef, { balance: fromPlayer.balance - repayAmount, loan: fromPlayer.loan - repayAmount });
-                        addTransactionToLog(batch, firestore, gameId, { ...fromPlayer, id: fromId }, { fromId, toId, amount: repayAmount, type, memo }, fromPlayer.balance - repayAmount);
-                    }
-                    break;
-
-                case 'receive-from-bank':
-                    if (toPlayer && toPlayerRef) {
-                        transaction.update(toPlayerRef, { balance: toPlayer.balance + amount });
-                        addTransactionToLog(batch, firestore, gameId, { ...toPlayer, id: toId }, { fromId, toId, amount, type, memo }, toPlayer.balance + amount);
-                    }
-                    break;
-
-                case 'take-loan':
-                    if (toPlayer && toPlayerRef) {
-                        transaction.update(toPlayerRef, { balance: toPlayer.balance + amount, loan: toPlayer.loan + amount });
-                        addTransactionToLog(batch, firestore, gameId, { ...toPlayer, id: toId }, { fromId, toId, amount, type, memo }, toPlayer.balance + amount);
-                    }
-                    break;
-            }
-        });
-        
-        // Commit the batch of transaction logs outside the atomic transaction
-        await batch.commit();
-
-    } catch (e: any) {
-        const permError = new FirestorePermissionError({
-            path: `games/${gameId}/players`,
-            operation: 'write',
-            requestResourceData: details,
-        });
-        errorEmitter.emit('permission-error', permError);
-        // Re-throw the original error to be caught by the UI
-        throw e;
+  try {
+    // Validate the transaction before even attempting to run it
+    if (details.fromId !== BANK_PLAYER_ID) {
+      const fromPlayerRef = doc(firestore, 'games', gameId, 'players', details.fromId);
+      const fromPlayerSnap = await getDoc(fromPlayerRef);
+      
+      if (fromPlayerSnap.exists()) {
+        const fromPlayer = fromPlayerSnap.data() as Player;
+        if (fromPlayer.balance < details.amount) {
+          console.log(`Insufficient funds: ${fromPlayer.name || details.fromId} has only $${fromPlayer.balance}.`);
+          throw new Error(`Insufficient funds: ${fromPlayer.name || details.fromId} has only $${fromPlayer.balance}.`);
+        }
+      }
     }
+    
+    // Create batch for transaction logs
+    const batch = writeBatch(firestore);
+    
+    // If validation passes, proceed with transaction
+    await runTransaction(firestore, async (transaction) => {
+      const { fromId, toId, amount, type, memo } = details;
+  
+      const fromPlayerRef = fromId !== BANK_PLAYER_ID ? doc(firestore, 'games', gameId, 'players', fromId) : null;
+      const toPlayerRef = toId !== BANK_PLAYER_ID ? doc(firestore, 'games', gameId, 'players', toId) : null;
+  
+      const fromPlayerDoc = fromPlayerRef ? await transaction.get(fromPlayerRef) : null;
+      const toPlayerDoc = toPlayerRef ? await transaction.get(toPlayerRef) : null;
+  
+      const fromPlayer = fromPlayerDoc?.exists() ? fromPlayerDoc.data() as Player : null;
+      const toPlayer = toPlayerDoc?.exists() ? toPlayerDoc.data() as Player : null;
+
+      // Double-check validation inside transaction
+      if (type === 'player-to-player' && fromPlayer && fromPlayer.balance < amount) {
+          throw new Error(`Insufficient funds: ${fromPlayer.name} has only $${fromPlayer.balance}.`);
+      }
+      
+      if (type === 'pay-bank' && fromPlayer && fromPlayer.balance < amount) {
+          throw new Error(`Insufficient funds: ${fromPlayer.name} has only $${fromPlayer.balance}.`);
+      }
+      
+      if (type === 'repay-loan' && fromPlayer && fromPlayer.balance < amount) {
+          throw new Error(`Insufficient funds: ${fromPlayer.name} has only $${fromPlayer.balance}.`);
+      }
+
+      // Proceed with transaction if validation passes
+      switch (type) {
+          case 'player-to-player':
+              if (fromPlayer && toPlayer && fromPlayerRef && toPlayerRef) {
+                  if (fromPlayer.balance < amount) throw new Error(`${fromPlayer.name} has insufficient funds.`);
+                  transaction.update(fromPlayerRef, { balance: fromPlayer.balance - amount });
+                  transaction.update(toPlayerRef, { balance: toPlayer.balance + amount });
+                  addTransactionToLog(batch, firestore, gameId, { ...fromPlayer, id: fromId }, { fromId, toId, amount, type, memo }, fromPlayer.balance - amount);
+                  addTransactionToLog(batch, firestore, gameId, { ...toPlayer, id: toId }, { fromId, toId, amount, type, memo }, toPlayer.balance + amount);
+              }
+              break;
+
+          case 'pay-bank':
+              if (fromPlayer && fromPlayerRef) {
+                  if (fromPlayer.balance < amount) throw new Error(`${fromPlayer.name} has insufficient funds.`);
+                  transaction.update(fromPlayerRef, { balance: fromPlayer.balance - amount });
+                  addTransactionToLog(batch, firestore, gameId, { ...fromPlayer, id: fromId }, { fromId, toId, amount, type, memo }, fromPlayer.balance - amount);
+              }
+              break;
+
+          case 'repay-loan':
+              if (fromPlayer && fromPlayerRef) {
+                  const repayAmount = Math.min(amount, fromPlayer.loan);
+                  if (fromPlayer.balance < repayAmount) throw new Error(`${fromPlayer.name} has insufficient funds to repay ${repayAmount}.`);
+                  transaction.update(fromPlayerRef, { balance: fromPlayer.balance - repayAmount, loan: fromPlayer.loan - repayAmount });
+                  addTransactionToLog(batch, firestore, gameId, { ...fromPlayer, id: fromId }, { fromId, toId, amount: repayAmount, type, memo }, fromPlayer.balance - repayAmount);
+              }
+              break;
+
+          case 'receive-from-bank':
+              if (toPlayer && toPlayerRef) {
+                  transaction.update(toPlayerRef, { balance: toPlayer.balance + amount });
+                  addTransactionToLog(batch, firestore, gameId, { ...toPlayer, id: toId }, { fromId, toId, amount, type, memo }, toPlayer.balance + amount);
+              }
+              break;
+
+          case 'take-loan':
+              if (toPlayer && toPlayerRef) {
+                  transaction.update(toPlayerRef, { balance: toPlayer.balance + amount, loan: toPlayer.loan + amount });
+                  addTransactionToLog(batch, firestore, gameId, { ...toPlayer, id: toId }, { fromId, toId, amount, type, memo }, toPlayer.balance + amount);
+              }
+              break;
+      }
+    });
+    
+    // Commit the batch of transaction logs outside the atomic transaction
+    await batch.commit();
+    return true;
+
+  } catch (e: any) {
+    console.error("Transaction error in performTransaction:", e);
+    
+    if (e.code && e.code.includes('permission-denied')) {
+      const permError = new FirestorePermissionError({
+          path: `games/${gameId}/players`,
+          operation: 'write',
+          requestResourceData: details,
+      });
+      errorEmitter.emit('permission-error', permError);
+    }
+    // Re-throw the error to be caught by the UI
+    throw e;
+  }
 };
 
 export const passStart = async (

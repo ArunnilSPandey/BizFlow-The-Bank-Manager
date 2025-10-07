@@ -16,6 +16,12 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/games/$(gameId)/userGameRoles/$(request.auth.uid)).data.role == 'Banker';
     }
 
+    // Add this function to validate player transactions
+    function hasEnoughFunds(gameId, playerId, amount) {
+      let playerData = get(/databases/$(database)/documents/games/$(gameId)/players/$(playerId)).data;
+      return playerData.balance >= amount;
+    }
+
     // Rules for the 'games' collection
     match /games/{gameId} {
       // Any authenticated user can create a game.
@@ -42,6 +48,12 @@ service cloud.firestore {
       // Rules for 'transactions' subcollection
       match /transactions/{transactionId} {
         // Only the Banker can create transactions.
+        // The transaction must be valid (for player-to-player, the from player must have sufficient funds)
+        allow create: if isUserAuthenticated() && isBanker(gameId) && 
+          (
+            request.resource.data.fromId == "bank" || 
+            hasEnoughFunds(gameId, request.resource.data.fromId, request.resource.data.amount)
+          );
         allow create: if isUserAuthenticated() && isBanker(gameId);
         
         // No one can update or delete transactions to maintain a clear audit trail.

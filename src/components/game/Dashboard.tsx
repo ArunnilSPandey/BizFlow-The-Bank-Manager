@@ -98,10 +98,12 @@ export default function Dashboard() {
         description: `Financial records updated.`,
       });
     } catch (e: any) {
+      // Better error handling - always use the toast, never crash
+      console.error("Transaction error:", e);
       toast({
         variant: "destructive",
         title: "Transaction Failed",
-        description: e.message,
+        description: e.message || "Unable to complete transaction. Please try again.",
       });
     }
   };

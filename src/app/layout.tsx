@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 import { GameProvider } from '@/contexts/GameContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'BizFlow',
@@ -23,9 +24,11 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <FirebaseClientProvider>
-          <GameProvider>
-            {children}
-          </GameProvider>
+          <ErrorBoundary>
+            <GameProvider>
+              {children}
+            </GameProvider>
+          </ErrorBoundary>
           <Toaster />
         </FirebaseClientProvider>
       </body>
